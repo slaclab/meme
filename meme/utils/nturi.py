@@ -18,5 +18,5 @@ class NTURI(pvaccess.PvObject):
 			value_dict['authority'] = authority
 		value_dict['path'] = path
 		if query is not None:
-			value_dict['query'] = query	
+			value_dict['query'] = {key: val	for key, val in query.items() if val is not None}
 		super(NTURI, self).__init__(structure_dict, value_dict, 'epics:nt/NTURI:1.0')
