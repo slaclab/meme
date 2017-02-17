@@ -9,7 +9,7 @@ class NTURI(pvaccess.PvObject):
 			structure_dict['authority'] = pvaccess.STRING
 		structure_dict['path'] = pvaccess.STRING
 		if query is not None:
-			q = {key: pvaccess.STRING for key in query}
+			q = {key: pvaccess.STRING for key in query if query[key] is not None}
 			structure_dict['query'] = q
 		
 		value_dict = OrderedDict()
