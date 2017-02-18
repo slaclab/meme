@@ -1,6 +1,5 @@
 import pvaccess
 from ..utils.nturi import NTURI
-from collections import OrderedDict
 
 def directory_service_get(**kws):
 	query_dict = kws
