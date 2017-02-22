@@ -11,6 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   meme/model/model
+   meme/names/names
 
 
 Indices and tables
