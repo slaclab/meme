@@ -5,28 +5,32 @@ from ..utils.nturi import NTURI
 class Model(object):
 	"""Holds the data for the full machine model, with convenient features for retrieving info.
 
-	    The Model class represents model data for the full machine.  This class fetches the full
-			machine model from the MEME model service, and caches it.  All class methods then operate
-			on the cached data.  If you would like to refresh the cache, you can call the
-			`refresh_rmat_data()`, `refresh_twiss_data()`, or `refresh_all()` methods, which will
-			re-fetch the information from the model service.  Alternatively, you can use the Model's
-			`no_caching` attribute to ensure that the model data is refreshed before any method call.
-			Be warned though, this adds a significant delay to every call.
-	    Properties created with the ``@property`` decorator should be documented
-	    in the property's getter method.
+		The Model class represents model data for the full machine.  This class fetches the full
+		machine model from the MEME model service, and caches it.  All class methods then operate
+		on the cached data.  If you would like to refresh the cache, you can call the
+		:func:`refresh_rmat_data()`, :func:`refresh_twiss_data()`, or :func:`refresh_all()` methods, which will
+		re-fetch the information from the model service.  Alternatively, you can use the Model's
+		`no_caching` attribute to ensure that the model data is refreshed before any method call.
+		Be warned though, this adds a significant delay to every call.
 	
-			Args:
-				initialize (:obj:`bool`, optional): Whether to fetch rmat and twiss data
-		 			immediately upon initialization.  Defaults to True.  If initialize is 
-					False, the data will be fetched the first time it is used.
-				use_design (:obj:`bool`, optional): Use the design model, rather than the
-					extant model.  Defaults to True.
-				no_caching (:obj:`bool`, optional): If true, model-data will be re-fetched
-					every time it is used.  This ensures you stay in-sync with the current
-					model, but makes method calls in this class slower.  If you are worried
-					about operators running and saving the model in-between uses of this
-					class, you might consider setting no_caching to True.
-	    """
+		Args:
+			initialize (bool, optional): Whether to fetch rmat and twiss data
+				immediately upon initialization.  Defaults to True.  If initialize is 
+				False, the data will be fetched the first time it is used.
+			use_design (bool, optional): Use the design model, rather than the
+				extant model.  Defaults to True.
+			no_caching (bool, optional): If true, model-data will be re-fetched
+				every time it is used.  This ensures you stay in-sync with the current
+				model, but makes method calls in this class slower.  If you are worried
+				about operators running and saving the model in-between uses of this
+				class, you might consider setting no_caching to True.
+		
+		Examples:
+			>>> from meme.model import Model
+			>>> m = Model()
+			>>> m.get_rmat('BPMS:LI24:801')
+			<np.ndarray>
+	"""
 	def __init__(self, initialize=True, use_design=False, no_caching=False):
 		self.use_design = use_design
 		self.no_caching = no_caching
@@ -40,16 +44,20 @@ class Model(object):
 		
 		This method operates in a few different modes:
 			1. When a single 'from' device and a single 'to' device is specified, a
-				single 6x6 transfer matrix will be returned.
+			single 6x6 transfer matrix will be returned.
+		
 			2. When a single 'from' device and a list of 'to' devices is specified, a
-				list of matrices will be returned, one for each element in the 'to' list.
+			list of matrices will be returned, one for each element in the 'to' list.
+		
 			3. When a list of 'from' devices, and a single 'to' device is specified, a
-				list of matrices will be returned, one for each element in the 'from' list.
+			list of matrices will be returned, one for each element in the 'from' list.
+		
 			4. When a list is specified for both 'from' and 'to' devices, a list of
-				matrices will be returned, one for each pair in the two lists.  Note that
-				in this mode, both device lists must be the same length.
+			matrices will be returned, one for each pair in the two lists.  Note that
+			in this mode, both device lists must be the same length.
+		
 			5. If only one device, or one list of devices is specified, it is assumed
-				that a single 'from' device, the first element in the machine, is implied.
+			that a single 'from' device, the first element in the machine, is implied.
 		
 		Args:
 			from_device (str or list of str): The starting device(s) for calculating the
@@ -62,14 +70,14 @@ class Model(object):
 			to_pos (str, optional): or elements split into multiple sub-elements,
 				this parameter specifies which sub-element to end the calculation at.
 				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
-			ignore_bad_names (:obj:`bool`, optional): Whether or not to ignore device
+			ignore_bad_names (bool, optional): Whether or not to ignore device
 				names which aren't present in the model.  If this option is True, and a
 				device is not found in the model, a 6x6 matrix filled with np.nan will be 
 				inserted for that device.
 		
 		Returns:
 			np.ndarray: An array with shape Nx6x6, where N is the length of from_device
-				or to_device
+			or to_device
 		"""
 		if isinstance(from_device, str):
 			from_device = [from_device]
@@ -129,7 +137,7 @@ class Model(object):
 			pos (str, optional): For elements split into multiple sub-elements,
 				this parameter specifies which sub-element to get the position for.
 				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
-			ignore_bad_names (:obj:`bool`, optional): Whether or not to ignore device
+			ignore_bad_names (bool, optional): Whether or not to ignore device
 				names which aren't present in the model.  If this option is True, and a
 				device is not found in the model, np.nan will be inserted for that device.
 		
@@ -168,25 +176,37 @@ class Model(object):
 			pos (str, optional): For elements split into multiple sub-elements,
 				this parameter specifies which sub-element to get the twiss for.
 				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
-			ignore_bad_names (:obj:`bool`, optional): Whether or not to ignore device
+			ignore_bad_names (bool, optional): Whether or not to ignore device
 				names which aren't present in the model.  If this option is True, and a
 				device is not found in the model, np.nan will be inserted for that device.
 		
 		Returns:
 			np.ndarray: A numpy structured array containing the twiss parameters for the
 			requested devices.  The array has the following fields:
-				* `leff` (float): The effective length of the device.
-				* `total_energy` (float): The total energy of the beam at the device.
-				* `psi_x` (float): The horizontal betatron phase advance at the device.
-				* `beta_x` (float): The horizontal beta function value at the device.
-				* `alpha_x` (float): The horizontal alpha function value at the device.
-				* `eta_x` (float): The horizontal dispersion at the device.
-				* `etap_x` (float): The horizontal second-order dispersion at the device.
-				* `psi_y` (float): The vertical betatron phase advance at the device.
-				* `beta_y` (float): The vertical beta function value at the device.
-				* `alpha_y` (float): The vertical alpha function value at the device.
-				* `eta_y` (float): The vertical dispersion at the device.
-				* `etap_y` (float): The vertical second-order dispersion at the device.
+		
+			* `leff` (float): The effective length of the device.
+		
+			* `total_energy` (float): The total energy of the beam at the device.
+		
+			* `psi_x` (float): The horizontal betatron phase advance at the device.
+		
+			* `beta_x` (float): The horizontal beta function value at the device.
+		
+			* `alpha_x` (float): The horizontal alpha function value at the device.
+		
+			* `eta_x` (float): The horizontal dispersion at the device.
+		
+			* `etap_x` (float): The horizontal second-order dispersion at the device.
+		
+			* `psi_y` (float): The vertical betatron phase advance at the device.
+		
+			* `beta_y` (float): The vertical beta function value at the device.
+		
+			* `alpha_y` (float): The vertical alpha function value at the device.
+		
+			* `eta_y` (float): The vertical dispersion at the device.
+		
+			* `etap_y` (float): The vertical second-order dispersion at the device.
 		"""
 		if isinstance(device_list, str):
 			device_list = [device_list]
@@ -250,7 +270,7 @@ def full_machine_rmats(use_design=False):
 				* `epics_channel_access_name` (str): The device name for the element.
 				* `position_index` (str): For elements which are split into multiple
 					sub-elements, this is the sub-element position. Either "BEGIN", "MIDDLE",
-		 			or "END".
+					or "END".
 				* `z_position` (float): The Z position for the element.  Note that Z
 					position of 0 refers to the start of the entire SLAC linac, NOT the start
 					of LCLS.
@@ -287,7 +307,7 @@ def full_machine_twiss(use_design=False):
 				* `epics_channel_access_name` (str): The device name for the element.
 				* `position_index` (str): For elements which are split into multiple
 					sub-elements, this is the sub-element position. Either "BEGIN", "MIDDLE",
-		 			or "END".
+					or "END".
 				* `leff` (float): The effective length of the element.
 				* `total_energy` (float): The total energy of the beam at the element.
 				* `psi_x` (float): The horizontal betatron phase advance at the element.
