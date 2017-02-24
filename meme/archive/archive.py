@@ -5,15 +5,15 @@ import pytz
 local_time_zone = pytz.timezone('US/Pacific')
 
 def hist_service_get(**kws):
-	query_dict = kws
-	query_struct = {}
-	for key in query_dict:
-		query_struct[key] = pvaccess.STRING
-	path = "hist"
-	request = NTURI(scheme="pva", path=path, query=kws)
-	rpc = pvaccess.RpcClient(path)
-	response = rpc.invoke(request).getStructure()
-	return response
+  query_dict = kws
+  query_struct = {}
+  for key in query_dict:
+    query_struct[key] = pvaccess.STRING
+  path = "hist"
+  request = NTURI(scheme="pva", path=path, query=kws)
+  rpc = pvaccess.RpcClient(path)
+  response = rpc.invoke(request).getStructure()
+  return response
 
 def convert_datetime_to_UTC(naive_datetime):
   loacl_datetime = local_time_zone.localize(naive_datetime, is_dst=None)
@@ -25,18 +25,18 @@ def iso8601_string_from_datetime(dt):
   return dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 def get(pv, from_time=None, to_time=None):
-	"""Gets history data from the archive service.
-	
-	Args:
-		pv (str or list of str): A PV (or list of PVs) to get history data for.
-		from_time (str or datetime, optional): The start time for the data.  Can be a
+  """Gets history data from the archive service.
+  
+  Args:
+    pv (str or list of str): A PV (or list of PVs) to get history data for.
+    from_time (str or datetime, optional): The start time for the data.  Can be a
       string, like "1 hour ago" or "now", or a python datetime object.  If you
       use a datetime object, and do not specify UTC or GMT for the timezone, 
       a timezone of 'US/Pacific' is implied.
     to_time (str or datetime, optional): The end time for the data.  The same
       rules as `from_time` apply.
-	Returns:
-		NTComplexTable: A data structure with the following fields:
+  Returns:
+    NTComplexTable: A data structure with the following fields:
     * value (structure): Holds the history data.  It has the following fields
       * secondsPastEpoch (list of ints): The UNIX timestamp for each history 
       point.
@@ -53,7 +53,7 @@ def get(pv, from_time=None, to_time=None):
     Each item in the list has the following fields:
     * pvName (str): The PV that this structure represents.
     * value (NTComplexTable): A data structure with the fields described above.
-	"""
+  """
   if not isinstance(pv, str):
     pv = ",".join(pv)
   if isinstance(from_time, datetime):
