@@ -1,16 +1,17 @@
 import pvaccess
+from ..utils.nturi import NTURI
 from datetime import datetime
 import dateutil.parser
 import pytz
 local_time_zone = pytz.timezone('US/Pacific')
 
 def hist_service_get(**kws):
-  query_dict = kws
+  query_dict = {key.lstrip("_"): val for key, val in kws.items()}
   query_struct = {}
   for key in query_dict:
     query_struct[key] = pvaccess.STRING
   path = "hist"
-  request = NTURI(scheme="pva", path=path, query=kws)
+  request = NTURI(scheme="pva", path=path, query=query_dict)
   rpc = pvaccess.RpcClient(path)
   response = rpc.invoke(request).getStructure()
   return response
@@ -64,4 +65,4 @@ def get(pv, from_time=None, to_time=None):
     if to_time.tzinfo is None or to_time.tzinfo.tzname(to_time) not in ("UTC", "GMT"):
       to_time = convert_datetime_to_UTC(to_time)
     to_time = iso8601_string_from_datetime(from_time)
-  return hist_service_get(pv=pv, from=from_time, to=to_time)
+  return hist_service_get(pv=pv, _from=from_time, _to=to_time)
