@@ -13,8 +13,11 @@ def hist_service_get(**kws):
   path = "hist"
   request = NTURI(scheme="pva", path=path, query=query_dict)
   rpc = pvaccess.RpcClient(path)
-  response = rpc.invoke(request).getStructure()
-  return response
+  response = rpc.invoke(request)
+  if response.isUnionArrayVariant():
+    return [item.getStructure() for item in response.getUnionArray()]
+  else:
+    return response.getStructure()
 
 def convert_datetime_to_UTC(naive_datetime):
   loacl_datetime = local_time_zone.localize(naive_datetime, is_dst=None)
