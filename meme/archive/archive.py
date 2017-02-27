@@ -29,6 +29,12 @@ def get(pv, from_time=None, to_time=None):
   
   Args:
     pv (str or list of str): A PV (or list of PVs) to get history data for.
+      The archive engine can perform processing on the data before returning it
+      to you.  To process data, you can ask for a PV wrapped in a processing
+      function.  For example, to bin the data into 3600 second-wide bins, and
+      take the mean of each bin, ask for "mean_3600(YOUR:PV:NAME:HERE)".  For
+      full documentation of all the processing operators, see the
+      `EPICS Archiver Appliance User Guide <https://slacmshankar.github.io/epicsarchiver_docs/userguide.html>`_.
     from_time (str or datetime, optional): The start time for the data.  Can be a
       string, like "1 hour ago" or "now", or a python datetime object.  If you
       use a datetime object, and do not specify UTC or GMT for the timezone, 
@@ -36,23 +42,24 @@ def get(pv, from_time=None, to_time=None):
     to_time (str or datetime, optional): The end time for the data.  The same
       rules as `from_time` apply.
   Returns:
-    dict: A data structure with the following fields:
-    * value (structure): Holds the history data.  It has the following fields
-      * secondsPastEpoch (list of ints): The UNIX timestamp for each history 
-      point.
-      * values (list of float): The values for each history point.
-      * nanoseconds (list of ints): The number of nanoseconds past the
-      timestamp for each history point.
-      * severity (list of int): The severity value for the PV at each history
-      point
-      * status (list of int): The status value for the PV at each history
-      point
-    * labels (list of str): The names of the fields in the value structure.
-  
+    dict or list of dicts: A data structure with the following fields:
+
+    * `secondsPastEpoch` (list of ints): The UNIX timestamp for each history point.
+    * `values` (list of float): The values for each history point.
+    * `nanoseconds` (list of ints): The number of nanoseconds past the timestamp for each history point.
+    * `severity` (list of int): The severity value for the PV at each history point.
+    * `status` (list of int): The status value for the PV at each history point.
+    
     If more than one PV was requested, a list of dicts will be returned.
     Each item in the list has the following fields:
-    * pvName (str): The PV that this structure represents.
-    * value (dict): A data structure with the fields described above.
+  
+    * `pvName` (str): The PV that this structure represents.
+    * `value` (dict): A dict with the data for the PV.  Has the following fields:
+  
+      * `value` (dict): Holds the data for the PV.  Same fields as the single-PV
+        case, documented above.
+      * `labels` (list of str): The names of the fields in the value structure.
+  
   """
   multiple_pvs = False
   if isinstance(pv, str):
