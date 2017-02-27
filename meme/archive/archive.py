@@ -75,7 +75,7 @@ def get(pv, from_time=None, to_time=None):
   if isinstance(to_time, datetime):
     if to_time.tzinfo is None or to_time.tzinfo.tzname(to_time) not in ("UTC", "GMT"):
       to_time = convert_datetime_to_UTC(to_time)
-    to_time = iso8601_string_from_datetime(from_time)
+    to_time = iso8601_string_from_datetime(to_time)
   response = hist_service_get(pv=pvlist, _from=from_time, _to=to_time)
   if multiple_pvs:
     return [item.getStructure() for item in response.getUnionArray()]
