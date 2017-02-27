@@ -13,11 +13,7 @@ def hist_service_get(**kws):
   path = "hist"
   request = NTURI(scheme="pva", path=path, query=query_dict)
   rpc = pvaccess.RpcClient(path)
-  response = rpc.invoke(request)
-  if response.isUnionArrayVariant():
-    return [item.getStructure() for item in response.getUnionArray()]
-  else:
-    return response.getStructure()
+  return rpc.invoke(request)
 
 def convert_datetime_to_UTC(naive_datetime):
   loacl_datetime = local_time_zone.localize(naive_datetime, is_dst=None)
@@ -40,7 +36,7 @@ def get(pv, from_time=None, to_time=None):
     to_time (str or datetime, optional): The end time for the data.  The same
       rules as `from_time` apply.
   Returns:
-    NTComplexTable: A data structure with the following fields:
+    dict: A data structure with the following fields:
     * value (structure): Holds the history data.  It has the following fields
       * secondsPastEpoch (list of ints): The UNIX timestamp for each history 
       point.
@@ -53,13 +49,17 @@ def get(pv, from_time=None, to_time=None):
       point
     * labels (list of str): The names of the fields in the value structure.
   
-    If more than one PV was requested, a list of structures will be returned.
+    If more than one PV was requested, a list of dicts will be returned.
     Each item in the list has the following fields:
     * pvName (str): The PV that this structure represents.
-    * value (NTComplexTable): A data structure with the fields described above.
+    * value (dict): A data structure with the fields described above.
   """
-  if not isinstance(pv, str):
-    pv = ",".join(pv)
+  if isinstance(pv, str):
+    pvlist = pv
+    multiple_pvs = False
+  else:
+    pvlist = ",".join(pv)
+    multiple_pvs = True
   if isinstance(from_time, datetime):
     if from_time.tzinfo is None or from_time.tzinfo.tzname(from_time) not in ("UTC", "GMT"):
       from_time = convert_datetime_to_UTC(from_time)
@@ -68,4 +68,9 @@ def get(pv, from_time=None, to_time=None):
     if to_time.tzinfo is None or to_time.tzinfo.tzname(to_time) not in ("UTC", "GMT"):
       to_time = convert_datetime_to_UTC(to_time)
     to_time = iso8601_string_from_datetime(from_time)
-  return hist_service_get(pv=pv, _from=from_time, _to=to_time)
+  response = hist_service_get(pv=pvlist, _from=from_time, _to=to_time)
+  if multiple_pvs:
+    return [item.getStructure() for item in response.getUnionArray()]
+  else:
+    return response.getStructure()
+  
