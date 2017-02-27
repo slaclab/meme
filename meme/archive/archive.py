@@ -54,12 +54,13 @@ def get(pv, from_time=None, to_time=None):
     * pvName (str): The PV that this structure represents.
     * value (dict): A data structure with the fields described above.
   """
+  multiple_pvs = False
   if isinstance(pv, str):
     pvlist = pv
-    multiple_pvs = False
   else:
     pvlist = ",".join(pv)
-    multiple_pvs = True
+    if len(pv) > 1:
+      multiple_pvs = True
   if isinstance(from_time, datetime):
     if from_time.tzinfo is None or from_time.tzinfo.tzname(from_time) not in ("UTC", "GMT"):
       from_time = convert_datetime_to_UTC(from_time)
