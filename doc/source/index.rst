@@ -13,6 +13,7 @@ Contents:
 
    meme/model/model
    meme/names/names
+   meme/archive/archive
 
 
 Indices and tables
