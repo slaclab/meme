@@ -16,7 +16,7 @@ def hist_service_get(**kws):
   return rpc.invoke(request)
 
 def convert_datetime_to_UTC(naive_datetime):
-  loacl_datetime = local_time_zone.localize(naive_datetime, is_dst=None)
+  local_datetime = local_time_zone.localize(naive_datetime, is_dst=None)
   utc_datetime = local_datetime.astimezone(pytz.utc)
   utc_datetime = utc_datetime.replace(tzinfo=None)
   return utc_datetime
