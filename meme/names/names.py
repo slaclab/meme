@@ -38,8 +38,9 @@ def list(pattern, tag=None, sort_by=None, element_type=None, show=None):
 	return response['name']
 
 def list_pvs(pattern, tag=None, sort_by=None, element_type=None):
-	"""Gets a list of PVs from the directory service.  Equivalent to calling list()
-	without specifying the `show` parameter.
+	"""Gets a list of PVs from the directory service.
+	
+	Equivalent to calling :meth:`list` without specifying the show parameter.
 	
 	Args:
 		pattern (str): A pattern to search for.  The pattern can use an Oracle-style
@@ -58,8 +59,9 @@ def list_pvs(pattern, tag=None, sort_by=None, element_type=None):
 	return list(pattern, tag, sort_by, element_type)
 
 def list_devices(pattern, tag=None, sort_by=None, element_type=None):
-	"""Gets a list of PVs from the directory service.  Equivalent to calling list()
-	with `show`="dname".
+	"""Gets a list of PVs from the directory service.  
+	
+	Equivalent to calling :meth:`list` with show='dname'.
 	
 	Args:
 		pattern (str): A pattern to search for.  The pattern can use an Oracle-style
@@ -78,8 +80,9 @@ def list_devices(pattern, tag=None, sort_by=None, element_type=None):
 	return list(pattern, tag, sort_by, element_type, show="dname")
 
 def list_elements(pattern, tag=None, sort_by=None, element_type=None):
-	"""Gets a list of PVs from the directory service.  Equivalent to calling list()
-	with `show`="ename".
+	"""Gets a list of PVs from the directory service.
+	
+	Equivalent to calling :meth:`list` with show="ename".
 	
 	Args:
 		pattern (str): A pattern to search for.  The pattern can use an Oracle-style
