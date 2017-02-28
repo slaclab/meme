@@ -38,14 +38,24 @@ get the data you are interested in:
 The model module works this way to keep things fast: usually, its faster to
 get the full machine model once, then refer to it repeatedly, than it is to
 repeatedly ask the model service for small bits of information.  Whenever you
-make a new instance of Model, you'll get the latest data from the service.  If
-you'd like to refresh the data for an existing instance, you can do that by
-calling :meth:`meme.model.Model.refresh_all`:
+make a new instance of Model, you'll get the latest data from the service.
+
+>>> from meme.model import Model
+>>> m = Model()
+>>> for bpm in bpm_list:
+>>>   r = m.get_rmat(from_device='BPM:IN20:221', to_device=bpm)
+
+Note that in the above example, you don't make a new Model inside the for loop.
+That would make you ask the service for the model data on every iteration of
+the loop, which would be very slow.
+
+If you need to refresh the data for an existing Model instance, you can do that
+by calling :meth:`meme.model.Model.refresh_all`:
 
 >>> from meme.model import Model
 >>> m = Model()
 >>> twiss = m.get_twiss('QUAD:LTU1:440')
->>> m.refresh_all() #The beam energy has changed and you want a new model.
+>>> m.refresh_all() #The beam energy has changed and you want new model data.
 >>> new_twiss = m.get_twiss('QUAD:LTU1:440')
 
 The various `get` methods in the Model class are pretty flexible.  You can
