@@ -1,6 +1,7 @@
 import pvaccess
 import numpy as np
 from ..utils.nturi import NTURI
+from itertools import cycle
 
 class Model(object):
 	"""Holds the data for the full machine model, with convenient features for retrieving info.
@@ -113,7 +114,7 @@ class Model(object):
 				else:
 					raise IndexError(msg)
 			try:
-				b_mat = np.mat(full_model[b_index][0]['r_mat'])
+				b_mat = np.mat(self.rmat_data[b_index][0]['r_mat'])
 			except IndexError:
 				msg = "Device with name {name} not found in the machine model.".format(name=b)
 				if ignore_bad_names:
@@ -129,7 +130,7 @@ class Model(object):
 			return rmats[0]
 		return rmats
 	
-	def get_zpos(device_list, pos='MIDDLE', ignore_bad_names=False):
+	def get_zpos(self, device_list, pos='MIDDLE', ignore_bad_names=False):
 		"""Get Z position for one or more devices.
 		
 		Args:
