@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='meme',
-    version='0.2.0',
+    version='0.2.1',
     description='A wrapper for the MEME services at SLAC.',
     long_description=long_description,
 
