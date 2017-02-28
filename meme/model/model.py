@@ -5,23 +5,23 @@ from ..utils.nturi import NTURI
 class Model(object):
 	"""Holds the data for the full machine model, with convenient features for retrieving info.
 
-		The Model class represents model data for the full machine.  This class fetches the full
-		machine model from the MEME model service, and caches it.  All class methods then operate
-		on the cached data.  If you would like to refresh the cache, you can call the
+		The Model class represents model data for the full machine.	 This class fetches the full
+		machine model from the MEME model service, and caches it.	 All class methods then operate
+		on the cached data.	 If you would like to refresh the cache, you can call the
 		:func:`refresh_rmat_data()`, :func:`refresh_twiss_data()`, or :func:`refresh_all()` methods, which will
-		re-fetch the information from the model service.  Alternatively, you can use the Model's
+		re-fetch the information from the model service.	Alternatively, you can use the Model's
 		`no_caching` attribute to ensure that the model data is refreshed before any method call.
 		Be warned though, this adds a significant delay to every call.
 	
 		Args:
 			initialize (bool, optional): Whether to fetch rmat and twiss data
-				immediately upon initialization.  Defaults to True.  If initialize is 
+				immediately upon initialization.	Defaults to True.	 If initialize is 
 				False, the data will be fetched the first time it is used.
 			use_design (bool, optional): Use the design model, rather than the
-				extant model.  Defaults to True.
+				extant model.	 Defaults to True.
 			no_caching (bool, optional): If true, model-data will be re-fetched
-				every time it is used.  This ensures you stay in-sync with the current
-				model, but makes method calls in this class slower.  If you are worried
+				every time it is used.	This ensures you stay in-sync with the current
+				model, but makes method calls in this class slower.	 If you are worried
 				about operators running and saving the model in-between uses of this
 				class, you might consider setting no_caching to True.
 		
@@ -53,7 +53,7 @@ class Model(object):
 			list of matrices will be returned, one for each element in the 'from' list.
 		
 			4. When a list is specified for both 'from' and 'to' devices, a list of
-			matrices will be returned, one for each pair in the two lists.  Note that
+			matrices will be returned, one for each pair in the two lists.	Note that
 			in this mode, both device lists must be the same length.
 		
 			5. If only one device, or one list of devices is specified, it is assumed
@@ -66,12 +66,12 @@ class Model(object):
 				transfer matrices.
 			from_pos (str, optional): For elements split into multiple sub-elements,
 				this parameter specifies which sub-element to start the calculation from.
-				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
+				Must be either "BEGIN", "MIDDLE", or "END".	 Defaults to "MIDDLE".
 			to_pos (str, optional): or elements split into multiple sub-elements,
 				this parameter specifies which sub-element to end the calculation at.
-				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
+				Must be either "BEGIN", "MIDDLE", or "END".	 Defaults to "MIDDLE".
 			ignore_bad_names (bool, optional): Whether or not to ignore device
-				names which aren't present in the model.  If this option is True, and a
+				names which aren't present in the model.	If this option is True, and a
 				device is not found in the model, a 6x6 matrix filled with np.nan will be 
 				inserted for that device.
 		
@@ -136,9 +136,9 @@ class Model(object):
 			device_list (str or list of str): The device(s) to get Z positions for.
 			pos (str, optional): For elements split into multiple sub-elements,
 				this parameter specifies which sub-element to get the position for.
-				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
+				Must be either "BEGIN", "MIDDLE", or "END".	 Defaults to "MIDDLE".
 			ignore_bad_names (bool, optional): Whether or not to ignore device
-				names which aren't present in the model.  If this option is True, and a
+				names which aren't present in the model.	If this option is True, and a
 				device is not found in the model, np.nan will be inserted for that device.
 		
 		Returns:
@@ -175,14 +175,14 @@ class Model(object):
 			device_list (str or list of str): The device(s) to get twiss parameters for.
 			pos (str, optional): For elements split into multiple sub-elements,
 				this parameter specifies which sub-element to get the twiss for.
-				Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
+				Must be either "BEGIN", "MIDDLE", or "END".	 Defaults to "MIDDLE".
 			ignore_bad_names (bool, optional): Whether or not to ignore device
-				names which aren't present in the model.  If this option is True, and a
+				names which aren't present in the model.	If this option is True, and a
 				device is not found in the model, np.nan will be inserted for that device.
 		
 		Returns:
 			np.ndarray: A numpy structured array containing the twiss parameters for the
-			requested devices.  The array has the following fields:
+			requested devices.	The array has the following fields:
 		
 			* `leff` (float): The effective length of the device.
 		
@@ -244,12 +244,18 @@ class Model(object):
 		return twiss
 	
 	def refresh_rmat_data(self):
+		"""Refresh the R-Matrix data from the MEME optics service.
+		"""
 		self.rmat_data = full_machine_rmats(self.use_design)
 
 	def refresh_twiss_data(self):
+		"""Refresh the Twiss data from the MEME optics service.
+		"""
 		self.twiss_data = full_machine_twiss(self.use_design)
 	
 	def refresh_all(self):
+		"""Refresh the R-Matrix and Twiss data from the MEME optics service.
+		"""
 		self.refresh_rmat_data()
 		self.refresh_twiss_data()
 	
@@ -260,18 +266,18 @@ def full_machine_rmats(use_design=False):
 	
 	Args:
 		use_design (bool, optional): Whether or not to use the design model, rather
-			than the extant model.  Defaults to False.
+			than the extant model.	Defaults to False.
 	Returns:
-		numpy.ndarray: A numpy structured array containing the model data.  The array
+		numpy.ndarray: A numpy structured array containing the model data.	The array
 			has the following fields:
-				* `ordinal` (int): The ordinal index for the element.  An element with a
+				* `ordinal` (int): The ordinal index for the element.	 An element with a
 					low ordinal number always comes before a high ordinal number.
 				* `element_name` (str): The element name for the element.
 				* `epics_channel_access_name` (str): The device name for the element.
 				* `position_index` (str): For elements which are split into multiple
 					sub-elements, this is the sub-element position. Either "BEGIN", "MIDDLE",
 					or "END".
-				* `z_position` (float): The Z position for the element.  Note that Z
+				* `z_position` (float): The Z position for the element.	 Note that Z
 					position of 0 refers to the start of the entire SLAC linac, NOT the start
 					of LCLS.
 				* `r_mat` (6x6 np.ndarray of floats): The 6x6 transport matrix for this element.
@@ -297,11 +303,11 @@ def full_machine_twiss(use_design=False):
 	
 	Args:
 		use_design (bool, optional): Whether or not to use the design model, rather
-			than the extant model.  Defaults to False.
+			than the extant model.	Defaults to False.
 	Returns:
-		numpy.ndarray: A numpy structured array containing the model data.  The array
+		numpy.ndarray: A numpy structured array containing the model data.	The array
 			has the following fields for each element:
-				* `ordinal` (int): The ordinal index for the element.  An element with a
+				* `ordinal` (int): The ordinal index for the element.	 An element with a
 					low ordinal number always comes before a high ordinal number.
 				* `element_name` (str): The element name for the element.
 				* `epics_channel_access_name` (str): The device name for the element.
