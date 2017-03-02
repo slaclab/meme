@@ -3,14 +3,13 @@ meme
 ====
 A python wrapper for the MEME services at SLAC.
 The meme wrapper aims to hide away EPICS v4 boilerplate code where possible,
-and provide a simple API for interacting with the various MEME (**M**AD
- **E**PICS **M**ATLAB **E**nvironment) services.
+and provide a simple API for interacting with the various MEME (MAD
+ EPICS MATLAB Environment) services.
 
 meme is split up into sub-modules, one for each MEME service. So far, the
 services implemented in python are:
 * **archive**: Use the MEME archive service to get history data for one or more PVs.
-* **model**: Use the MEME model service get machine model data (R-matrices, Twiss
-             parameters, Z-Positions) for beamline elements.
+* **model**: Use the MEME model service get machine model data (R-matrices, Twiss parameters, Z-Positions) for beamline elements.
 * **names**: Use the MEME directory service to list PVs, element names, or device names.
 
 Archive
