@@ -169,7 +169,7 @@ class Model(object):
 			return z_pos[0]
 		return z_pos
 	
-	def get_twiss(device_list, pos='MIDDLE', ignore_bad_names=False):
+	def get_twiss(self, device_list, pos='MIDDLE', ignore_bad_names=False):
 		"""Get Z position for one or more devices.
 		
 		Args:
