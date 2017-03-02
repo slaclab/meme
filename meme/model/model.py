@@ -290,7 +290,7 @@ def full_machine_rmats(use_design=False):
 	rpc = pvaccess.RpcClient(path)
 	request = NTURI(scheme='pva', path=path)
 	response = rpc.invoke(request).getStructure()
-	m = np.zeros(len(response['ELEMENT_NAME']), dtype=[('ordinal', 'i16'),('element_name', 'a60'), ('epics_channel_access_name', 'a60'), ('position_index', 'a6'), ('z_position', 'float32'), ('r_mat', 'float32', (6,6))])
+	m = np.zeros(len(response['ELEMENT_NAME']), dtype=[('ordinal', 'int16'),('element_name', 'a60'), ('epics_channel_access_name', 'a60'), ('position_index', 'a6'), ('z_position', 'float32'), ('r_mat', 'float32', (6,6))])
 	m['ordinal'] = response['ORDINAL']
 	m['element_name'] = response['ELEMENT_NAME']
 	m['epics_channel_access_name'] = response['EPICS_CHANNEL_ACCESS_NAME']
@@ -335,7 +335,7 @@ def full_machine_twiss(use_design=False):
 	rpc = pvaccess.RpcClient(path)
 	request = NTURI(scheme='pva', path=path)
 	response = rpc.invoke(request).getStructure()
-	m = np.zeros(len(response['ELEMENT_NAME']), dtype=[('ordinal', 'i16'),('element_name', 'a60'), ('epics_channel_access_name', 'a60'), ('position_index', 'a6'), ('leff', 'float32'), ('total_energy', 'float32'), ('psi_x', 'float32'), ('beta_x', 'float32'), ('alpha_x', 'float32'), ('eta_x', 'float32'), ('etap_x', 'float32'), ('psi_y', 'float32'), ('beta_y', 'float32'), ('alpha_y', 'float32'), ('eta_y', 'float32'), ('etap_y', 'float32')])
+	m = np.zeros(len(response['ELEMENT_NAME']), dtype=[('ordinal', 'int16'),('element_name', 'a60'), ('epics_channel_access_name', 'a60'), ('position_index', 'a6'), ('leff', 'float32'), ('total_energy', 'float32'), ('psi_x', 'float32'), ('beta_x', 'float32'), ('alpha_x', 'float32'), ('eta_x', 'float32'), ('etap_x', 'float32'), ('psi_y', 'float32'), ('beta_y', 'float32'), ('alpha_y', 'float32'), ('eta_y', 'float32'), ('etap_y', 'float32')])
 	m['ordinal'] = response['ORDINAL']
 	m['element_name'] = response['ELEMENT_NAME']
 	m['epics_channel_access_name'] = response['EPICS_CHANNEL_ACCESS_NAME']
