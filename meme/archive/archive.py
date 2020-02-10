@@ -1,19 +1,18 @@
-import pvaccess
-from ..utils.nturi import NTURI
+from p4p.client.thread import Context
+from p4p.nt import NTTable, NTURI
 from datetime import datetime
 import dateutil.parser
 import pytz
-local_time_zone = pytz.timezone('US/Pacific')
 
-def hist_service_get(**kws):
+local_time_zone = pytz.timezone('US/Pacific')
+ctx = Context('pva')
+ArchiveQueryURI = NTURI([('from', 's'), ('to', 's'), ('pv', 's')])
+
+def hist_service_get(timeout=None, **kws):
+  timeout = 5.0 if timeout is None
   query_dict = {key.lstrip("_"): val for key, val in kws.items()}
-  query_struct = {}
-  for key in query_dict:
-    query_struct[key] = pvaccess.STRING
-  path = "hist"
-  request = NTURI(scheme="pva", path=path, query=query_dict)
-  rpc = pvaccess.RpcClient(path)
-  return rpc.invoke(request)
+  request = ArchiveQueryURI.wrap("hist", scheme="pva", kws=query_dict)
+  return ctx.rpc("hist", request, timeout=timeout)
 
 def convert_datetime_to_UTC(naive_datetime):
   local_datetime = local_time_zone.localize(naive_datetime, is_dst=None)
@@ -24,7 +23,7 @@ def convert_datetime_to_UTC(naive_datetime):
 def iso8601_string_from_datetime(dt):
   return dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
-def get(pv, from_time=None, to_time=None):
+def get(pv, from_time=None, to_time=None, timeout=None):
   """Gets history data from the archive service.
   
   Args:
@@ -76,9 +75,9 @@ def get(pv, from_time=None, to_time=None):
     if to_time.tzinfo is None or to_time.tzinfo.tzname(to_time) not in ("UTC", "GMT"):
       to_time = convert_datetime_to_UTC(to_time)
     to_time = iso8601_string_from_datetime(to_time)
-  response = hist_service_get(pv=pvlist, _from=from_time, _to=to_time)
+  response = hist_service_get(pv=pvlist, _from=from_time, _to=to_time, timeout=timeout)
   if multiple_pvs:
-    return [item.getStructure() for item in response.getUnionArray()]
+    return [NTTable.unwrap(item.value) for item in response.value]
   else:
-    return response.getStructure()
+    return NTTable.unwrap(response)
   
