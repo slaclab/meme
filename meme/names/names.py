@@ -1,15 +1,14 @@
-import pvaccess
-from ..utils.nturi import NTURI
+from p4p.client.thread import Context
+from p4p.nt import NTTable, NTURI
 
-def directory_service_get(**kws):
-	query_dict = kws
-	query_struct = {}
-	for key in query_dict:
-		query_struct[key] = pvaccess.STRING
-	path = "ds"
-	request = NTURI(scheme="pva", path=path, query=kws)
-	rpc = pvaccess.RpcClient(path)
-	response = rpc.invoke(request).getStructure()
+ctx = Context('pva')
+NameQueryURI = NTURI([('name', 's'), ('to', 's'), ('pv', 's')])
+
+def directory_service_get(timeout=None, **kws):
+  timeout = 5.0 if timeout is None
+  NameQueryURI = NTURI([(key, 's') for key in kws])
+	request = NameQueryURI.wrap("ds", scheme="pva", kws=kws)
+	response = ctx.rpc("ds", request, timeout=timeout)
 	return response
 
 def list(pattern, tag=None, sort_by=None, element_type=None, show=None):
@@ -35,7 +34,7 @@ def list(pattern, tag=None, sort_by=None, element_type=None, show=None):
 		list of str: A list of names matching the parameters sent.
 	"""
 	response = directory_service_get(name=pattern, tag=tag, sort=sort_by, etype=element_type, show=show)
-	return response['name']
+  return [row['name'] for row in NTTable.unwrap(response)]
 
 def list_pvs(pattern, tag=None, sort_by=None, element_type=None):
 	"""Gets a list of PVs from the directory service.
