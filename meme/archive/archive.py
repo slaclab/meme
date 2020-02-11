@@ -9,7 +9,8 @@ ctx = Context('pva')
 ArchiveQueryURI = NTURI([('from', 's'), ('to', 's'), ('pv', 's')])
 
 def hist_service_get(timeout=None, **kws):
-  timeout = 5.0 if timeout is None
+  if timeout is None:
+    timeout = 5.0
   query_dict = {key.lstrip("_"): val for key, val in kws.items()}
   request = ArchiveQueryURI.wrap("hist", scheme="pva", kws=query_dict)
   return ctx.rpc("hist", request, timeout=timeout)
