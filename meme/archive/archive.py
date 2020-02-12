@@ -78,7 +78,7 @@ def get(pv, from_time=None, to_time=None, timeout=None):
     to_time = iso8601_string_from_datetime(to_time)
   response = hist_service_get(pv=pvlist, _from=from_time, _to=to_time, timeout=timeout)
   if multiple_pvs:
-    return [NTTable.unwrap(item.value) for item in response.value]
+    return [item.todict() for item in response.value]
   else:
-    return NTTable.unwrap(response)
+    return NTTable.unwrap(response)[0]
   
