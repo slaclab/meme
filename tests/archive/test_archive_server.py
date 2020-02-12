@@ -19,9 +19,9 @@ multi_response_struct = Type([
 
 class ArchiveTester(object):
   @rpc(None)
-  def hist(self, pv, from_arg=None, to_arg=None):
-    value = [{"secondsPastEpoch": 1, "values": 123.45, "nanoseconds": 0, "severity": 0, "status": 0},
-             {"secondsPastEpoch": 2, "values": 678.90, "nanoseconds": 0, "severity": 0, "status": 0}]
+  def hist(self, **kws):
+    pv = kws['pv']
+    value = [{"secondsPastEpoch": 1, "values": 123.45, "nanoseconds": 0, "severity": 0, "status": 0}]
     pv_list = pv.split(",")
     if len(pv_list) == 1:
       return single_pv_struct.wrap(value)
@@ -32,6 +32,7 @@ class ArchiveTester(object):
         result_list.append(pv_data)
       return Value(multi_response_struct, {"value": result_list})
     
+print("Starting Archive Test Server!")
 tester = ArchiveTester()
 quickRPCServer(provider="Archive Test Server",
                prefix="",
