@@ -1,21 +1,38 @@
-import pvaccess
+from p4p import Type, Value
+from p4p.nt import NTTable
+from p4p.rpc import rpc, quickRPCServer
 
-srv = pvaccess.RpcServer()
-def handle_request(request):
-	single_pv_struct = {"labels": [pvaccess.STRING], "value": {"secondsPastEpoch": [pvaccess.LONG], "values": [pvaccess.DOUBLE], "nanoseconds": [pvaccess.INT], "severity": [pvaccess.INT], "status": [pvaccess.INT]}}
-	single_pv_value = {"labels": ["secondsPastEpoch", "values", "nanoseconds", "severity", "status"], "value": {"secondsPastEpoch": [1], "values": [123.45], "nanoseconds": [0], "severity": [0], "status": [0]}}
-	pv_list = request['query']['pv'].split(",")
-	if len(pv_list) == 1:
-		single_pv_response = pvaccess.PvObject(single_pv_struct, single_pv_value,'NTComplexTable')
-		return single_pv_response
-	else:
-		final_response_struct = pvaccess.PvObject({"value": [()]})
-		result_list = []
-		for pv in pv_list:
-			pv_data = pvaccess.PvObject({"value": {"pvName": pvaccess.STRING, "value": single_pv_struct}},{"value": {"pvName": pv, "value": single_pv_value}})
-			result_list.append(pv_data)
-		final_response_struct.setUnionArray(result_list)
-		return final_response_struct
-	
-srv.registerService('hist', handle_request)
-srv.listen()
+single_pv_struct = NTTable([("secondsPastEpoch", "l"), ("values", "d"), ("nanoseconds", "i"), ("severity", "i"), ("status", "i")])
+
+"""
+pv_data = pvaccess.PvObject({"value": {"pvName": pvaccess.STRING, "value": single_pv_struct}},{"value": {"pvName": pv, "value": single_pv_value}})
+"""
+
+multi_pv_struct = Type([
+  ("pvName", "s"),
+  ("value", ("S", "NTComplexTable", single_pv_struct.type.items()))
+])
+
+multi_response_struct = Type([
+  ("value", "av")
+])
+
+class ArchiveTester(object):
+  @rpc(None)
+  def hist(self, pv, from_arg=None, to_arg=None):
+    value = [{"secondsPastEpoch": 1, "values": 123.45, "nanoseconds": 0, "severity": 0, "status": 0},
+             {"secondsPastEpoch": 2, "values": 678.90, "nanoseconds": 0, "severity": 0, "status": 0}]
+    pv_list = pv.split(",")
+    if len(pv_list) == 1:
+      return single_pv_struct.wrap(value)
+    else:
+      result_list = []
+      for p in pv_list:
+        pv_data = Value(multi_pv_struct, {"pvName": p, "value": single_pv_struct.wrap(value)})
+        result_list.append(pv_data)
+      return Value(multi_response_struct, {"value": result_list})
+    
+tester = ArchiveTester()
+quickRPCServer(provider="Archive Test Server",
+               prefix="",
+               target=tester)
