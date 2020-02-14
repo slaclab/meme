@@ -1,51 +1,52 @@
-import pvaccess
+from p4p import Type, Value
+from p4p.nt import NTTable
+from p4p.server.thread import SharedPV
+from p4p.server import Server
 import os
+import sys
 import pickle
 from collections import OrderedDict
 
 rmat_data = None
-with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rmat_data.pkl')) as f:
+with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rmat_data.pkl'), 'rb') as f:
 	rmat_data = pickle.load(f)
 
 twiss_data = None
-with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'twiss_data.pkl')) as f:
+with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'twiss_data.pkl'), 'rb') as f:
   twiss_data = pickle.load(f)
 
 if rmat_data is None or twiss_data is None:
   raise Exception("Could not load saved rmat or twiss data.")
 
-def generate_rmat_table():
-  cols = OrderedDict([('ORDINAL', pvaccess.DOUBLE), ('ELEMENT_NAME', pvaccess.STRING), ('EPICS_CHANNEL_ACCESS_NAME', pvaccess.STRING), ('POSITION_INDEX', pvaccess.STRING), ('Z_POSITION', pvaccess.DOUBLE), ('R11', pvaccess.DOUBLE), ('R12', pvaccess.DOUBLE), ('R13', pvaccess.DOUBLE), ('R14', pvaccess.DOUBLE), ('R15', pvaccess.DOUBLE), ('R16', pvaccess.DOUBLE), ('R21', pvaccess.DOUBLE), ('R22', pvaccess.DOUBLE), ('R23', pvaccess.DOUBLE), ('R24', pvaccess.DOUBLE), ('R25', pvaccess.DOUBLE), ('R26', pvaccess.DOUBLE), ('R31', pvaccess.DOUBLE), ('R32', pvaccess.DOUBLE), ('R33', pvaccess.DOUBLE), ('R34', pvaccess.DOUBLE), ('R35', pvaccess.DOUBLE), ('R36', pvaccess.DOUBLE), ('R41', pvaccess.DOUBLE), ('R42', pvaccess.DOUBLE), ('R43', pvaccess.DOUBLE), ('R44', pvaccess.DOUBLE), ('R45', pvaccess.DOUBLE), ('R46', pvaccess.DOUBLE), ('R51', pvaccess.DOUBLE), ('R52', pvaccess.DOUBLE), ('R53', pvaccess.DOUBLE), ('R54', pvaccess.DOUBLE), ('R55', pvaccess.DOUBLE), ('R56', pvaccess.DOUBLE), ('R61', pvaccess.DOUBLE), ('R62', pvaccess.DOUBLE), ('R63', pvaccess.DOUBLE), ('R64', pvaccess.DOUBLE), ('R65', pvaccess.DOUBLE), ('R66', pvaccess.DOUBLE)])
-  
-  pvObject = pvaccess.PvObject({'labels' : [pvaccess.STRING], 'value' : {key: [val] for key, val in cols.items()}})
-  pvObject.setScalarArray('labels', cols.keys())
-  pvObject.setStructure('value', {key: rmat_data['value'][key] for key in cols.keys()})
+twiss_cols = [('ORDINAL', 'd'), ('ELEMENT_NAME', 's'), ('EPICS_CHANNEL_ACCESS_NAME', 's'), ('POSITION_INDEX', 's'), ('LEFF', 'd'), ('TOTAL_ENERGY', 'd'), ('PSI_X', 'd'), ('BETA_X', 'd'), ('ALPHA_X', 'd'), ('ETA_X', 'd'), ('ETAP_X', 'd'), ('PSI_Y', 'd'), ('BETA_Y', 'd'), ('ALPHA_Y', 'd'), ('ETA_Y', 'd'), ('ETAP_Y', 'd')]
+twiss_table = NTTable(twiss_cols)
+rows = [{key: twiss_data['value'][key][i] for key, _ in twiss_cols} for i in range(0,len(twiss_data['value']['ELEMENT_NAME']))]
+twiss_vals = twiss_table.wrap(rows)
+twiss_pv = SharedPV(nt=twiss_table, initial=twiss_vals)
 
-  table = pvaccess.NtTable(pvObject)
-  return table
+rmat_cols = [('ORDINAL', 'd'), ('ELEMENT_NAME', 's'), ('EPICS_CHANNEL_ACCESS_NAME', 's'), ('POSITION_INDEX', 's'),('Z_POSITION', 'd'),
+('R11', 'd'), ('R12', 'd'), ('R13', 'd'), ('R14', 'd'), ('R15', 'd'), ('R16', 'd'),
+('R21', 'd'), ('R22', 'd'), ('R23', 'd'), ('R24', 'd'), ('R25', 'd'), ('R26', 'd'),
+('R31', 'd'), ('R32', 'd'), ('R33', 'd'), ('R34', 'd'), ('R35', 'd'), ('R36', 'd'),
+('R41', 'd'), ('R42', 'd'), ('R43', 'd'), ('R44', 'd'), ('R45', 'd'), ('R46', 'd'),
+('R51', 'd'), ('R52', 'd'), ('R53', 'd'), ('R54', 'd'), ('R55', 'd'), ('R56', 'd'),
+('R61', 'd'), ('R62', 'd'), ('R63', 'd'), ('R64', 'd'), ('R65', 'd'), ('R66', 'd')]
+rmat_table = NTTable(rmat_cols)
+rows = [{key: rmat_data['value'][key][i] for key, _ in rmat_cols} for i in range(0,len(rmat_data['value']['ELEMENT_NAME']))]
+rmat_vals = rmat_table.wrap(rows)
+rmat_pv = SharedPV(nt=rmat_table, initial=rmat_vals)
 
-def generate_twiss_table():
-  cols = OrderedDict([('ORDINAL', pvaccess.DOUBLE), ('ELEMENT_NAME', pvaccess.STRING), ('EPICS_CHANNEL_ACCESS_NAME', pvaccess.STRING), ('POSITION_INDEX', pvaccess.STRING), ('LEFF', pvaccess.DOUBLE), ('TOTAL_ENERGY', pvaccess.DOUBLE), ('PSI_X', pvaccess.DOUBLE), ('BETA_X', pvaccess.DOUBLE), ('ALPHA_X', pvaccess.DOUBLE), ('ETA_X', pvaccess.DOUBLE), ('ETAP_X', pvaccess.DOUBLE), ('PSI_Y', pvaccess.DOUBLE), ('BETA_Y', pvaccess.DOUBLE), ('ALPHA_Y', pvaccess.DOUBLE), ('ETA_Y', pvaccess.DOUBLE), ('ETAP_Y', pvaccess.DOUBLE)])
-  
-  pvObject = pvaccess.PvObject({'labels' : [pvaccess.STRING], 'value' : {key: [val] for key, val in cols.items()}})
-  pvObject.setScalarArray('labels', cols.keys())
-  pvObject.setStructure('value', {key: twiss_data['value'][key] for key in cols.keys()})
+@twiss_pv.rpc
+def twiss_request_handler(pv, op):
+  op.done(twiss_vals)
 
-  table = pvaccess.NtTable(pvObject)
-  return table
-
-rmat_table = generate_rmat_table()
-twiss_table = generate_twiss_table()
-
-def handle_twiss_request(request):
-	return twiss_table
-
-def handle_rmat_request(request):
-  return rmat_table
-
-srv = pvaccess.RpcServer()
-srv.registerService('MODEL:TWISS:EXTANT:FULLMACHINE', handle_twiss_request)
-srv.registerService('MODEL:TWISS:DESIGN:FULLMACHINE', handle_twiss_request)
-srv.registerService('MODEL:RMATS:EXTANT:FULLMACHINE', handle_rmat_request)
-srv.registerService('MODEL:RMATS:DESIGN:FULLMACHINE', handle_rmat_request)
-srv.listen()
+@rmat_pv.rpc
+def rmat_request_handler(pv, op):
+  op.done(rmat_vals)
+print("Starting Model Service Test Server!")
+Server.forever(providers=[{
+  'MODEL:TWISS:EXTANT:FULLMACHINE': twiss_pv,
+  'MODEL:TWISS:DESIGN:FULLMACHINE': twiss_pv,
+  'MODEL:RMATS:EXTANT:FULLMACHINE': rmat_pv,
+  'MODEL:RMATS:DESIGN:FULLMACHINE': rmat_pv
+}])
