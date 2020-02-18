@@ -80,5 +80,4 @@ def get(pv, from_time=None, to_time=None, timeout=None):
   if multiple_pvs:
     return [item.todict() for item in response.value]
   else:
-    return NTTable.unwrap(response)[0]
-  
+    return response.value.todict()
