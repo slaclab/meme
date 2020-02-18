@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='meme',
-    version='0.2.1',
+    version='0.3.0',
     description='A wrapper for the MEME services at SLAC.',
     long_description=long_description,
 
@@ -38,7 +38,7 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python',
     ],
 
     # What does your project relate to?
@@ -56,7 +56,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['pvaccess', 'numpy'],
+    install_requires=['p4p', 'numpy'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
