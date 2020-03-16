@@ -43,6 +43,20 @@ class ArchiveGetTest(unittest.TestCase):
     from_time = to_time - timedelta(hours=1)
     r = meme.archive.get("MC00:ASTS:OUTSIDET", from_time=from_time, to_time=to_time)
     self.assert_single_pv_response_has_correct_fields(r)
+
+  def test_convert_to_dataframe_multiple_pvs(self):
+    pvs = ["MC00:ASTS:OUTSIDET", "QUAD:IN20:425:BDES"]
+    r = meme.archive.get(pvs)
+    df = meme.archive.convert_to_dataframe(r)
+    for pv in pvs:
+      self.assertTrue(pv in df.keys())
+  
+  def test_convert_to_dataframe_single_pv(self):
+    pvs = "MC00:ASTS:OUTSIDET"
+    r = meme.archive.get(pvs)
+    df = meme.archive.convert_to_dataframe(r)
+    self.assertTrue(len(df.keys()) == 1)
+    self.assertTrue(df.keys()[0] == "value")
   
   def assert_times_within_range(self, times, begin_time, end_time):
     begin_timestamp = (begin_time - datetime(1970,1,1)).total_seconds()

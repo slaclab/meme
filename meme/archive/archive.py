@@ -1,8 +1,9 @@
 from p4p.client.thread import Context
 from p4p.nt import NTTable, NTURI
-from datetime import datetime
+import pandas as pd
 import dateutil.parser
 import pytz
+from datetime import datetime
 
 local_time_zone = pytz.timezone('US/Pacific')
 ctx = Context('pva')
@@ -81,3 +82,44 @@ def get(pv, from_time=None, to_time=None, timeout=None):
     return [item.todict() for item in response.value]
   else:
     return response.value.todict()
+
+def convert_to_dataframe(archive_data):
+    """Convert archive data returned by :func:`meme.archive.get` to a pandas dataframe. 
+  
+    Args:
+      archive_data (dict or list of dicts): A dictionary, or list of dictionaries of archive data, in the format returned by
+      :func:`meme.archive.get`.
+    Returns:
+      pandas.DataFrame: A pandas DataFrame object with a column for the values of each PV.
+      
+      The DataFrame is indexed on timestamp, with nanosecond level precision.  All data is
+      is joined on the timestamps, and filled when there are gaps, so every column has data
+      for every timestamp.
+    """
+    import pandas as pd
+    flattened_data = {}
+    if isinstance(archive_data, dict):
+        # If this was a single PV, wrangle into the format for multiple PVs.
+        archive_data = {"pvName": "value", "value": {"value": archive_data}}
+        archive_data = [archive_data]
+        
+    for pv_data in archive_data:
+        pv_name = pv_data['pvName']
+        flattened_data[pv_name] = {"secondsPastEpoch": pv_data['value']['value']["secondsPastEpoch"],
+                                             "nanoseconds": pv_data['value']['value']['nanoseconds'],
+                                             "values": pv_data['value']['value']['values']}
+    # Now we make data frames for each PV, then join them all together.
+    dfs = []
+    for pv_name in flattened_data:
+        df = pd.DataFrame.from_dict(flattened_data[pv_name])
+        df['datetime'] = pd.to_datetime(df["secondsPastEpoch"]*1.0e9 + df["nanoseconds"])
+        df.set_index('datetime', inplace=True)
+        del(df['nanoseconds'])
+        del(df['secondsPastEpoch'])
+        df.rename(columns={'values': pv_name}, inplace=True)
+        dfs.append(df)
+    # Now join all the individual data frames together, and fill gaps in timestamps
+    all_data = dfs[0].join(dfs[1:], how='outer')
+    all_data.fillna(method="ffill", inplace=True)
+    all_data.fillna(method="bfill", inplace=True)
+    return all_data
