@@ -25,7 +25,7 @@ def convert_datetime_to_UTC(naive_datetime):
 def iso8601_string_from_datetime(dt):
   return dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
-def get(pv, from_time=None, to_time=None, timeout=None):
+def get(pv, from_time=None, to_time=None, timeout=5.0):
   """Gets history data from the archive service.
   
   Args:
@@ -42,6 +42,8 @@ def get(pv, from_time=None, to_time=None, timeout=None):
       a timezone of 'US/Pacific' is implied.
     to_time (str or datetime, optional): The end time for the data.  The same
       rules as `from_time` apply.
+    timeout (float, optional): An amount of time to wait (in seconds) before cancelling the
+      request.  The default timeout is 5.0 seconds.
   Returns:
     dict or list of dicts: A data structure with the following fields:
 
@@ -88,7 +90,7 @@ def convert_to_dataframe(archive_data):
   
     Args:
       archive_data (dict or list of dicts): A dictionary, or list of dictionaries of archive data, in the format returned by
-      :func:`meme.archive.get`.
+        :func:`meme.archive.get`.
     Returns:
       pandas.DataFrame: A pandas DataFrame object with a column for the values of each PV.
       
