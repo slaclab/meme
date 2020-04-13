@@ -125,3 +125,37 @@ def convert_to_dataframe(archive_data):
     all_data.fillna(method="ffill", inplace=True)
     all_data.fillna(method="bfill", inplace=True)
     return all_data
+    
+def get_dataframe(pv, from_time=None, to_time=None, timeout=5.0):
+    """Gets history data from the archive service as a pandas.DataFrame
+    
+        All arugments are the same as :func:`meme.archive.get`.
+        This is equivalent to:
+    
+        .. code-block:: python
+    
+           meme.archive.convert_to_dataframe(meme.archive.get())
+  
+    Args:
+      pv (str or list of str): A PV (or list of PVs) to get history data for.
+        The archive engine can perform processing on the data before returning it
+        to you.  To process data, you can ask for a PV wrapped in a processing
+        function.  For example, to bin the data into 3600 second-wide bins, and
+        take the mean of each bin, ask for "mean_3600(YOUR:PV:NAME:HERE)".  For
+        full documentation of all the processing operators, see the
+        `EPICS Archiver Appliance User Guide <https://slacmshankar.github.io/epicsarchiver_docs/userguide.html>`_.
+      from_time (str or datetime, optional): The start time for the data.  Can be a
+        string, like "1 hour ago" or "now", or a python datetime object.  If you
+        use a datetime object, and do not specify UTC or GMT for the timezone, 
+        a timezone of 'US/Pacific' is implied.
+      to_time (str or datetime, optional): The end time for the data.  The same
+        rules as `from_time` apply.
+      timeout (float, optional): An amount of time to wait (in seconds) before cancelling the
+        request.  The default timeout is 5.0 seconds.
+    Returns:
+      pandas.DataFrame: A pandas DataFrame object with a column for the values of each PV.
+      
+      The DataFrame is indexed on timestamp, with nanosecond level precision.  All data is
+      is joined on the timestamps, and filled when there are gaps, so every column has data
+      for every timestamp.
+    """
