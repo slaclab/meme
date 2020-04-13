@@ -126,7 +126,7 @@ def convert_to_dataframe(archive_data):
     all_data.fillna(method="bfill", inplace=True)
     return all_data
     
-def get_dataframe(pv, from_time=None, to_time=None, timeout=5.0):
+def get_dataframe(*args, **kwargs):
     """Gets history data from the archive service as a pandas.DataFrame
     
         All arugments are the same as :func:`meme.archive.get`.
@@ -159,3 +159,4 @@ def get_dataframe(pv, from_time=None, to_time=None, timeout=5.0):
       is joined on the timestamps, and filled when there are gaps, so every column has data
       for every timestamp.
     """
+    return convert_to_dataframe(get(*args, **kwargs))
