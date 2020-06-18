@@ -12,7 +12,7 @@ def directory_service_get(timeout=None, **kws):
   response = ctx.rpc("ds", request, timeout=timeout)
   return response
 
-def list(pattern, tag=None, sort_by=None, element_type=None, show=None):
+def list(pattern, tag=None, sort_by=None, element_type=None, show=None, timeout=None):
   """Gets a list of PVs, device names, or element names from the directory service.
   
   Args:
@@ -34,10 +34,10 @@ def list(pattern, tag=None, sort_by=None, element_type=None, show=None):
   Returns:
     list of str: A list of names matching the parameters sent.
   """
-  response = directory_service_get(name=pattern, tag=tag, sort=sort_by, etype=element_type, show=show)
+  response = directory_service_get(timeout=timeout, name=pattern, tag=tag, sort=sort_by, etype=element_type, show=show)
   return [row['name'] for row in NTTable.unwrap(response)]
 
-def list_pvs(pattern, tag=None, sort_by=None, element_type=None):
+def list_pvs(pattern, tag=None, sort_by=None, element_type=None, timeout=None):
   """Gets a list of PVs from the directory service.
   
   Equivalent to calling :meth:`list` without specifying the show parameter.
@@ -56,9 +56,9 @@ def list_pvs(pattern, tag=None, sort_by=None, element_type=None):
   Returns:
     list of str: A list of PVs matching the parameters sent.
   """
-  return list(pattern, tag, sort_by, element_type)
+  return list(pattern, tag=tag, sort_by=sort_by, element_type=element_type, timeout=timeout)
 
-def list_devices(pattern, tag=None, sort_by=None, element_type=None):
+def list_devices(pattern, tag=None, sort_by=None, element_type=None, timeout=None):
   """Gets a list of PVs from the directory service.  
   
   Equivalent to calling :meth:`list` with show='dname'.
@@ -77,9 +77,9 @@ def list_devices(pattern, tag=None, sort_by=None, element_type=None):
   Returns:
     list of str: A list of device names matching the parameters sent.
   """
-  return list(pattern, tag, sort_by, element_type, show="dname")
+  return list(pattern, tag=tag, sort_by=sort_by, element_type=element_type, show="dname", timeout=timeout)
 
-def list_elements(pattern, tag=None, sort_by=None, element_type=None):
+def list_elements(pattern, tag=None, sort_by=None, element_type=None, timeout=None):
   """Gets a list of PVs from the directory service.
   
   Equivalent to calling :meth:`list` with show="ename".
@@ -98,6 +98,6 @@ def list_elements(pattern, tag=None, sort_by=None, element_type=None):
   Returns:
     list of str: A list of element names matching the parameters sent.
   """
-  return list(pattern, tag, sort_by, element_type, show="ename")
+  return list(pattern, tag=tag, sort_by=sort_by, element_type=element_type, show="ename", timeout=timeout)
   
 
