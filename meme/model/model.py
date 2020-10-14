@@ -86,7 +86,7 @@ class Model(object):
       <np.ndarray>
     """
     def __init__(self, model_name, initialize=True, use_design=False, no_caching=False):
-        self.model_name = model_name
+        self.model_name = str(model_name).upper()
         self.use_design = use_design
         self.no_caching = no_caching
         self.rmat_data = None
