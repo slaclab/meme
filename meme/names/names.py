@@ -122,9 +122,16 @@ def device_to_element(device_name, timeout=None):
   for devname in device_name:
     response = directory_service_get(timeout=timeout, dname=devname, show="ename")
     responses.extend([row['name'] for row in NTTable.unwrap(response)])
-  flattened_responses = [elename for sublist in responses for elename in sublist]
+  flattened_responses = []
+  for item in responses:
+    if isinstance(item, str):
+      flattened_responses.append(item)
+    else:
+      for name in item:
+        flattened_responses.append(name)
   if was_single_string:
     return flattened_responses[0]
+  return flattened_responses
 
 def element_to_device(element_name, timeout=None):
   """Given an element name or list of element names, get the corresponding device name(s).
@@ -144,7 +151,14 @@ def element_to_device(element_name, timeout=None):
   for elename in element_name:
     response = directory_service_get(timeout=timeout, ename=elename, show="dname")
     responses.extend([row['name'] for row in NTTable.unwrap(response)])
-  flattened_responses = [elename for sublist in responses for elename in sublist]
+  flattened_responses = []
+  for item in responses:
+    if isinstance(item, str):
+      flattened_responses.append(item)
+    else:
+      for name in item:
+        flattened_responses.append(name)
   if was_single_string:
     return flattened_responses[0]
+  return flattened_responses
   
