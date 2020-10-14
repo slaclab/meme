@@ -1,3 +1,4 @@
+import re
 from p4p.client.thread import Context
 from p4p.nt import NTTable, NTURI
 
@@ -100,4 +101,50 @@ def list_elements(pattern, tag=None, sort_by=None, element_type=None, timeout=No
   """
   return list(pattern, tag=tag, sort_by=sort_by, element_type=element_type, show="ename", timeout=timeout)
   
+def device_to_element(device_name, timeout=None):
+  """Given a device name or list of device names, get the corresponding element name(s).
+     
+    Args:
+      device_name (str or list of str): Device name(s) to convert to element name(s).
+        You can also specify device name patterns, or a list of device name patterns
+        to search for, using Oracle-style wildcard syntax (like "BPMS:BSYH:%") or regex
+        patterns (like "BPMS:(BSYH|LTUH|UNDH):.*").
+    Returns:
+      str or list of str: An element name or list of element names.
+  """
+  was_single_string = False
+  if isinstance(device_name, str):
+    if re.search("[.^$*+?{}()[\],\\\/|%]", device_name) == None:
+      #This is a plain-old device name, not a pattern.
+      was_single_string = True
+    device_name = [device_name]
+  responses = []
+  for devname in device_name:
+    response = directory_service_get(timeout=timeout, dname=devname, show="ename")
+    responses.extend([row['name'] for row in NTTable.unwrap(response)])
+  flattened_responses = [elename for sublist in responses for elename in sublist]
+  if was_single_string:
+    return flattened_responses[0]
 
+def element_to_device(element_name, timeout=None):
+  """Given an element name or list of element names, get the corresponding device name(s).
+     
+    Args:
+      element_name (str or list of str): Element name(s) to convert to device name(s).
+        Note: Unlike :func:`device_to_element()`, the directory service does not support
+        wildcards or regex patterns when converting from element names to device names.
+    Returns:
+      str or list of str: An element name or list of element names.
+  """
+  was_single_string = False
+  if isinstance(element_name, str):
+    was_single_string = True
+    element_name = [element_name]
+  responses = []
+  for elename in element_name:
+    response = directory_service_get(timeout=timeout, ename=elename, show="dname")
+    responses.extend([row['name'] for row in NTTable.unwrap(response)])
+  flattened_responses = [elename for sublist in responses for elename in sublist]
+  if was_single_string:
+    return flattened_responses[0]
+  
