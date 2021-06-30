@@ -63,14 +63,15 @@ class Model(object):
     """Holds the data for the full machine model, with convenient features for retrieving info.
     
     The Model class represents model data for the full machine.  This class fetches the full
-    machine model from the MEME model service, and caches it.  All class methods then operate
+    machine model from the BMAD Live Model service, and caches it.  All class methods then operate
     on the cached data.  If you would like to refresh the cache, you can call the
     :func:`refresh_rmat_data()`, :func:`refresh_twiss_data()`, or :func:`refresh_all()` methods, which will
     re-fetch the information from the model service.  Alternatively, you can use the Model's
     `no_caching` attribute to ensure that the model data is refreshed before any method call.
-    Be warned though, this adds a significant delay to every call.
+    Be warned though, this adds a several hundred millisecond delay to every call.
   
     Args:
+      model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
       initialize (bool, optional): Whether to fetch rmat and twiss data
         immediately upon initialization.  Defaults to True.  If initialize is 
         False, the data will be fetched the first time it is used.
@@ -78,13 +79,11 @@ class Model(object):
         extant model.  Defaults to True.
       no_caching (bool, optional): If true, model-data will be re-fetched
         every time it is used.  This ensures you stay in-sync with the current
-        model, but makes method calls in this class slower.  If you are worried
-        about operators running and saving the model in-between uses of this
-        class, you might consider setting no_caching to True.
+        model, but makes method calls in this class slower.
     
     Examples:
       >>> from meme.model import Model
-      >>> m = Model()
+      >>> m = Model("CU_HXR")
       >>> m.get_rmat('BPMS:LI24:801')
       <np.ndarray>
     """
@@ -222,9 +221,6 @@ class Model(object):
         
         Args:
             device_list (str or list of str): The device(s) to get twiss parameters for.
-            pos (str, optional): For elements split into multiple sub-elements,
-                this parameter specifies which sub-element to get the twiss for.
-                Must be either "BEGIN", "MIDDLE", or "END".  Defaults to "MIDDLE".
             ignore_bad_names (bool, optional): Whether or not to ignore device
                 names which aren't present in the model.  If this option is True, and a
                 device is not found in the model, np.nan will be inserted for that device.
@@ -306,9 +302,10 @@ class Model(object):
         self.refresh_twiss_data()
 
 def full_machine_rmats(model_name, use_design=False):
-    """Gets the full machine model from the MEME optics service.
+    """Gets the full machine model from the BMAD Live Model service.
     
     Args:
+        model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
         use_design (bool, optional): Whether or not to use the design model, rather
         than the extant model.  Defaults to False.
     Returns:
@@ -334,9 +331,10 @@ def full_machine_rmats(model_name, use_design=False):
     return m
 
 def full_machine_twiss(model_name, use_design=False):
-    """Gets twiss parameters for the full machine from the MEME optics service.
+    """Gets twiss parameters for the full machine from the BMAD Live Model service.
     
     Args:
+        model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
         use_design (bool, optional): Whether or not to use the design model, rather
         than the extant model.  Defaults to False.
     Returns:
