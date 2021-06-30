@@ -1,3 +1,4 @@
+import sys
 from p4p.client.thread import Context
 from p4p.nt import NTTable, NTURI
 import numpy as np
@@ -10,10 +11,10 @@ class NumpyNTTable(NTTable):
     p4p_to_numpy_dtype = {
         "a?": "?",
         "as": "U60",
-        "ab": "b1",
-        "aB": "B1",
-        "ah": "b2",
-        "aH": "B2",
+        "ab": "i1",
+        "aB": "u1",
+        "ah": "i2",
+        "aH": "u2",
         "ai": "i4",
         "aI": "u4",
         "al": "i8",
@@ -39,7 +40,9 @@ class NumpyNTTable(NTTable):
 
     @staticmethod
     def unwrap(value):
-        col_names = value.labels
+        col_names = value.value.keys()
+        if sys.version_info[0] < 3:
+          col_names = [n.encode('utf-8') for n in col_names]
         # We need to get the dtype info for each column.  This lives in the 
         # following location:
         col_types = value.type().items()[1][1].items()
