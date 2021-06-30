@@ -57,9 +57,9 @@ class NumpyNTTable(NTTable):
         val.value = obj
 
 # We use a custom subclass of NTTable that wraps/unwraps to a numpy structured array.
-ctx = Context('pva', nt={"epics:nt/NTTable:1.0": NumpyNTTable})
 
 class Model(object):
+    ctx = Context('pva')
     """Holds the data for the full machine model, with convenient features for retrieving info.
     
     The Model class represents model data for the full machine.  This class fetches the full
@@ -324,8 +324,8 @@ def full_machine_rmats(model_name, use_design=False):
     model_type = "LIVE"
     if use_design:
         model_type = "DESIGN"
-    path = "SIMULACRUM:SYS0:1:{}:{}:RMAT".format(model_name, model_type)
-    response = ctx.get(path)
+    path = "BMAD:SYS0:1:{}:{}:RMAT".format(model_name.upper(), model_type)
+    response = NumpyNTTable.unwrap(Model.ctx.get(path))
     m = np.zeros(len(response['element']), dtype=[('element', 'U60'), ('device_name', 'U60'), ('s', 'float32'), ('r_mat', 'float32', (6,6))])
     m['element'] = response['element']
     m['device_name'] = response['device_name']
@@ -360,5 +360,5 @@ def full_machine_twiss(model_name, use_design=False):
     model_type = "LIVE"
     if use_design:
         model_type = "DESIGN"
-    path = "SIMULACRUM:SYS0:1:{}:{}:TWISS".format(model_name, model_type)
-    return ctx.get(path)
+    path = "BMAD:SYS0:1:{}:{}:TWISS".format(model_name.upper(), model_type)
+    return NumpyNTTable.unwrap(Model.ctx.get(path))
