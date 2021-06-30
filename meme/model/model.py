@@ -158,10 +158,10 @@ class Model(object):
                 msg = "Device with name {name} not found in the machine model.".format(name=a)
                 if ignore_bad_names:
                     print(msg)
-                a_mat = np.empty((6,6))
-                a_mat.fill(np.nan)
-            else:
-                raise IndexError(msg)
+                    a_mat = np.empty((6,6))
+                    a_mat.fill(np.nan)
+                else:
+                    raise IndexError(msg)
             try:
                 b_mat = self.rmat_data[b_index][0]['r_mat']
             except IndexError:
