@@ -124,6 +124,9 @@ def convert_to_dataframe(archive_data):
     all_data = dfs[0].join(dfs[1:], how='outer')
     all_data.fillna(method="ffill", inplace=True)
     all_data.fillna(method="bfill", inplace=True)
+    # Now get the timezone set correctly for all timestamps.
+    all_data = all_data.tz_localize('UTC').tz_convert(local_time_zone)
+    
     return all_data
     
 def get_dataframe(*args, **kwargs):
