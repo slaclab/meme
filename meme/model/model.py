@@ -178,10 +178,44 @@ class Model(object):
             return rmats[0]
         return rmats
     
+    def get_s(self, device_list, ignore_bad_names=False):
+        """Get S position (integrated distance along the beamline) for one or more devices.
+        
+        Args:
+            device_list (str or list of str): The device(s) to get S positions for.
+            ignore_bad_names (bool, optional): Whether or not to ignore device
+            names which aren't present in the model.  If this option is True, and a
+            device is not found in the model, np.nan will be inserted for that device.
+        
+        Returns:
+            np.ndarray: A 1xN array of S positions, where N=len(device_list)
+        """
+        if isinstance(device_list, str):
+            device_list = [device_list]
+        if self.rmat_data is None or self.no_caching:
+            self.refresh_rmat_data()
+        s_pos = np.zeros((len(device_list)))
+        i = 0
+        for dev in device_list:
+            dev_index = np.where(self.rmat_data['device_name'] == dev)
+            #if len(dev_index[0]) > 1:
+                #dev_index = dev_index & (self.rmat_data['position_index'] == pos)
+            if len(dev_index[0]) == 1:
+                s_pos[i] = self.rmat_data[dev_index][0]['s']
+            else:
+                msg = "Device with name {name} not found in the machine model, could not get Z position.".format(name=dev)
+                if ignore_bad_names:
+                    print(msg)
+                    s_pos[i] = None
+                else:
+                    raise IndexError(msg)
+            i += 1
+        if i == 1:
+            return s_pos[0]
+        return s_pos
+    
     def get_zpos(self, device_list, ignore_bad_names=False):
-        """Get Z position for one or more devices.  NOTE: This is actually
-        returning the 's' position of the device (so, the integrated distance
-        along the beamline).
+        """Get Z position for one or more devices.
         
         Args:
             device_list (str or list of str): The device(s) to get Z positions for.
@@ -203,7 +237,7 @@ class Model(object):
             #if len(dev_index[0]) > 1:
                 #dev_index = dev_index & (self.rmat_data['position_index'] == pos)
             if len(dev_index[0]) == 1:
-                z_pos[i] = self.rmat_data[dev_index][0]['s']
+                z_pos[i] = self.rmat_data[dev_index][0]['z']
             else:
                 msg = "Device with name {name} not found in the machine model, could not get Z position.".format(name=dev)
                 if ignore_bad_names:
@@ -215,7 +249,7 @@ class Model(object):
         if i == 1:
             return z_pos[0]
         return z_pos
-    
+
     def get_twiss(self, device_list, ignore_bad_names=False):
         """Get twiss data for one or more devices.
         
@@ -323,9 +357,10 @@ def full_machine_rmats(model_name, use_design=False):
         model_type = "DESIGN"
     path = "BMAD:SYS0:1:{}:{}:RMAT".format(model_name.upper(), model_type)
     response = NumpyNTTable.unwrap(Model.ctx.get(path))
-    m = np.zeros(len(response['element']), dtype=[('element', 'U60'), ('device_name', 'U60'), ('s', 'float32'), ('r_mat', 'float32', (6,6))])
+    m = np.zeros(len(response['element']), dtype=[('element', 'U60'), ('device_name', 'U60'), ('z', 'float32'), ('s', 'float32'), ('r_mat', 'float32', (6,6))])
     m['element'] = response['element']
     m['device_name'] = response['device_name']
+    m['z'] = response['z']
     m['s'] = response['s']
     m['r_mat'] = np.reshape(np.array([response['r11'], response['r12'], response['r13'], response['r14'], response['r15'], response['r16'], response['r21'], response['r22'], response['r23'], response['r24'], response['r25'], response['r26'], response['r31'], response['r32'], response['r33'], response['r34'], response['r35'], response['r36'], response['r41'], response['r42'], response['r43'], response['r44'], response['r45'], response['r46'], response['r51'], response['r52'], response['r53'], response['r54'], response['r55'], response['r56'], response['r61'], response['r62'], response['r63'], response['r64'], response['r65'], response['r66']]).T, (-1,6,6))
     return m
