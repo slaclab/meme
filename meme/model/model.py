@@ -217,7 +217,7 @@ class Model(object):
         return z_pos
     
     def get_twiss(self, device_list, ignore_bad_names=False):
-        """Get Z position for one or more devices.
+        """Get twiss data for one or more devices.
         
         Args:
             device_list (str or list of str): The device(s) to get twiss parameters for.
