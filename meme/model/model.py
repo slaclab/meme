@@ -87,12 +87,12 @@ class Model(object):
       >>> m.get_rmat('BPMS:LI24:801')
       <np.ndarray>
     """
-    def __init__(self, model_name, initialize=True, use_design=False, no_caching=False):
+    def __init__(self, model_name, initialize=True, use_design=False, no_caching=False, rmat_data=None, twiss_data=None):
         self.model_name = str(model_name).upper()
         self.use_design = use_design
         self.no_caching = no_caching
-        self.rmat_data = None
-        self.twiss_data = None
+        self.rmat_data = rmat_data
+        self.twiss_data = twiss_data
         if initialize:
             self.refresh_all()
     
@@ -334,6 +334,22 @@ class Model(object):
         """Refresh the R-Matrix and Twiss data from the MEME optics service."""
         self.refresh_rmat_data()
         self.refresh_twiss_data()
+    
+    def save_file(self, filename):
+        np.savez(filename, rmat_data=self.rmat_data, twiss_data=self.twiss_data, name=self.model_name)
+        
+    @classmethod
+    def load_file(self, filename):
+        f = np.load(filename)
+        return cls(f['model_name'], initialize=False, rmat_data=f['rmat_data'], twiss_data=f['twiss_data'])
+    
+    def save_matlab_file(self, filename):
+        scipy.io.savemat(filename, {"rmats": self.rmat_data, "twiss": self.twiss_data, "name": self.model_name})
+    
+    @classmethod
+    def load_matlab_file(cls, filename):
+        data = scipy.io.loadmat(filename)
+        return cls(data['model_name'], initialize=False, rmat_data=data['rmat_data'], twiss_data=data['twiss_data'])
 
 def full_machine_rmats(model_name, use_design=False):
     """Gets the full machine model from the BMAD Live Model service.
