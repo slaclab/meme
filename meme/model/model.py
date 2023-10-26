@@ -138,7 +138,10 @@ class Model(object):
             raise Exception("Length of from_device must match length of to_device if both have length > 1.")
         if len(to_device) == 0:
             to_device = list(from_device)
-            from_device = ['CATH:IN20:111'] #This probably shouldn't be hard-coded.
+            if self.model_name.startswith("CU"):
+                from_device = ['CATH:IN20:111']
+            elif self.model_name.startswith("SC"):
+                from_device = ['CATH:GUNB:100']
         if self.rmat_data is None or self.no_caching:
             self.refresh_rmat_data()
         device_list = list(zip(from_device, cycle(to_device))) if len(from_device) > len(to_device) else list(zip(cycle(from_device), to_device))
