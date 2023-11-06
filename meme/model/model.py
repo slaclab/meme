@@ -87,10 +87,11 @@ class Model(object):
       >>> m.get_rmat('BPMS:LI24:801')
       <np.ndarray>
     """
-    def __init__(self, model_name, initialize=True, use_design=False, no_caching=False):
+    def __init__(self, model_name, initialize=True, use_design=False, no_caching=False, from_matlab=False):
         self.model_name = str(model_name).upper()
         self.use_design = use_design
         self.no_caching = no_caching
+        self.from_matlab = from_matlab
         self.rmat_data = None
         self.twiss_data = None
         if initialize:
@@ -327,18 +328,18 @@ class Model(object):
     
     def refresh_rmat_data(self):
         """Refresh the R-Matrix data from the MEME optics service."""
-        self.rmat_data = full_machine_rmats(self.model_name, self.use_design)
+        self.rmat_data = full_machine_rmats(self.model_name, self.use_design, self.from_matlab)
     
     def refresh_twiss_data(self):
         """Refresh the Twiss data from the MEME optics service."""
-        self.twiss_data = full_machine_twiss(self.model_name, self.use_design)
+        self.twiss_data = full_machine_twiss(self.model_name, self.use_design, self.from_matlab)
     
     def refresh_all(self):
         """Refresh the R-Matrix and Twiss data from the MEME optics service."""
         self.refresh_rmat_data()
         self.refresh_twiss_data()
 
-def full_machine_rmats(model_name, use_design=False):
+def full_machine_rmats(model_name, use_design=False, from_matlab=False):
     """Gets the full machine model from the BMAD Live Model service.
     
     Args:
@@ -355,10 +356,11 @@ def full_machine_rmats(model_name, use_design=False):
               of LCLS.
             * `r_mat` (6x6 np.ndarray of floats): The 6x6 transport matrix for this element.
     """
+    model_source = "BLEM" if from_matlab else "BMAD"
     model_type = "LIVE"
     if use_design:
         model_type = "DESIGN"
-    path = "BMAD:SYS0:1:{}:{}:RMAT".format(model_name.upper(), model_type)
+    path = "{}:SYS0:1:{}:{}:RMAT".format(model_source, model_name.upper(), model_type)
     response = NumpyNTTable.unwrap(Model.ctx.get(path))
     m = np.zeros(len(response['element']), dtype=[('element', 'U60'), ('device_name', 'U60'), ('z', 'float32'), ('s', 'float32'), ('r_mat', 'float32', (6,6))])
     m['element'] = response['element']
@@ -368,7 +370,7 @@ def full_machine_rmats(model_name, use_design=False):
     m['r_mat'] = np.reshape(np.array([response['r11'], response['r12'], response['r13'], response['r14'], response['r15'], response['r16'], response['r21'], response['r22'], response['r23'], response['r24'], response['r25'], response['r26'], response['r31'], response['r32'], response['r33'], response['r34'], response['r35'], response['r36'], response['r41'], response['r42'], response['r43'], response['r44'], response['r45'], response['r46'], response['r51'], response['r52'], response['r53'], response['r54'], response['r55'], response['r56'], response['r61'], response['r62'], response['r63'], response['r64'], response['r65'], response['r66']]).T, (-1,6,6))
     return m
 
-def full_machine_twiss(model_name, use_design=False):
+def full_machine_twiss(model_name, use_design=False, from_matlab=False):
     """Gets twiss parameters for the full machine from the BMAD Live Model service.
     
     Args:
@@ -393,8 +395,9 @@ def full_machine_twiss(model_name, use_design=False):
             * `etap_y` (float): The vertical second-order dispersion at the element.
             * `psi_y` (float): The vertical betatron phase advance at the element.
     """
+    model_source = "BLEM" if from_matlab else "BMAD"
     model_type = "LIVE"
     if use_design:
         model_type = "DESIGN"
-    path = "BMAD:SYS0:1:{}:{}:TWISS".format(model_name.upper(), model_type)
+    path = "{}:SYS0:1:{}:{}:TWISS".format(model_source, model_name.upper(), model_type)
     return NumpyNTTable.unwrap(Model.ctx.get(path))
