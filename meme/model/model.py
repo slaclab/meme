@@ -63,7 +63,7 @@ class Model(object):
     """Holds the data for the full machine model, with convenient features for retrieving info.
     
     The Model class represents model data for the full machine.  This class fetches the full
-    machine model from the BMAD Live Model service, and caches it.  All class methods then operate
+    machine model from a PVA server, and then caches it.  All class methods then operate
     on the cached data.  If you would like to refresh the cache, you can call the
     :func:`refresh_rmat_data()`, :func:`refresh_twiss_data()`, or :func:`refresh_all()` methods, which will
     re-fetch the information from the model service.  Alternatively, you can use the Model's
@@ -71,7 +71,8 @@ class Model(object):
     Be warned though, this adds a several hundred millisecond delay to every call.
   
     Args:
-      model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
+      model_name (str): Which acclerator model to use.  Can be "CU_HXR", "CU_SXR","CU_SPEC", "SC_DIAG0", "SC_BSYD", "SC_HXR", "SC_SXR", or "FACET2E".
+      model_source (str, optional): Defaults to "BMAD", which is currently the only option for CU and SC model_names. FACET2E only has "LUCRETIA" as a source.
       initialize (bool, optional): Whether to fetch rmat and twiss data
         immediately upon initialization.  Defaults to True.  If initialize is 
         False, the data will be fetched the first time it is used.
@@ -82,13 +83,22 @@ class Model(object):
         model, but makes method calls in this class slower.
     
     Examples:
+      $ ssh physics@lcls-srv01
       >>> from meme.model import Model
       >>> m = Model("CU_HXR")
       >>> m.get_rmat('BPMS:LI24:801')
       <np.ndarray>
+
+      $ssh fphysics@facet-srv01
+      >>> from meme.model import Model
+      >>> m = Model("FACET2E",model_source='LUCRETIA')
+      >>> m.get_rmat('LI16:XCOR:402')
+      <np.ndarray>
+ 
     """
-    def __init__(self, model_name, initialize=True, use_design=False, no_caching=False):
+    def __init__(self, model_name, model_source='BMAD', initialize=True, use_design=False, no_caching=False):
         self.model_name = str(model_name).upper()
+        self.model_source = str(model_source).upper()
         self.use_design = use_design
         self.no_caching = no_caching
         self.rmat_data = None
@@ -116,6 +126,7 @@ class Model(object):
           5. If only one device, or one list of devices is specified, it is assumed
           that a single 'from' device, the first element in the machine, is implied.
 
+
         Args:
           from_device (str or list of str): The starting device(s) for calculating the
             transfer matrices.
@@ -142,6 +153,11 @@ class Model(object):
                 from_device = ['CATH:IN20:111']
             elif self.model_name.startswith("SC"):
                 from_device = ['CATH:GUNB:100']
+            elif self.model_name.startswith('FACET'):
+                from_device=['KLYS:LI0:21'] #funny name, but this corresponds to CATHODE element
+            else:
+                raise NameError('len(to_device)==0 and model_name not found')
+
         if self.rmat_data is None or self.no_caching:
             self.refresh_rmat_data()
         device_list = list(zip(from_device, cycle(to_device))) if len(from_device) > len(to_device) else list(zip(cycle(from_device), to_device))
@@ -327,24 +343,25 @@ class Model(object):
     
     def refresh_rmat_data(self):
         """Refresh the R-Matrix data from the MEME optics service."""
-        self.rmat_data = full_machine_rmats(self.model_name, self.use_design)
+        self.rmat_data = full_machine_rmats(self.model_name, self.use_design, self.model_source)
     
     def refresh_twiss_data(self):
         """Refresh the Twiss data from the MEME optics service."""
-        self.twiss_data = full_machine_twiss(self.model_name, self.use_design)
+        self.twiss_data = full_machine_twiss(self.model_name, self.use_design, self.model_source)
     
     def refresh_all(self):
         """Refresh the R-Matrix and Twiss data from the MEME optics service."""
         self.refresh_rmat_data()
         self.refresh_twiss_data()
 
-def full_machine_rmats(model_name, use_design=False):
-    """Gets the full machine model from the BMAD Live Model service.
+def full_machine_rmats(model_name, use_design=False, model_source='BMAD'):
+    """Gets the full machine model from the BMAD Live Model service. It uses, the  PV "{model_sourc.upper}:SYS0:1:{model_name.upper}:{LIVE or DESIGN}:RMAT".
     
     Args:
         model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
         use_design (bool, optional): Whether or not to use the design model, rather
         than the extant model.  Defaults to False.
+        model_source (str, optional): The name of the model source ('BMAD', or 'LUCRETIA', for example).
     Returns:
         numpy.ndarray: A numpy structured array containing the model data.  The array
         has the following fields:
@@ -358,7 +375,7 @@ def full_machine_rmats(model_name, use_design=False):
     model_type = "LIVE"
     if use_design:
         model_type = "DESIGN"
-    path = "BMAD:SYS0:1:{}:{}:RMAT".format(model_name.upper(), model_type)
+    path = "{}:SYS0:1:{}:{}:RMAT".format(model_source.upper(),model_name.upper(), model_type)
     response = NumpyNTTable.unwrap(Model.ctx.get(path))
     m = np.zeros(len(response['element']), dtype=[('element', 'U60'), ('device_name', 'U60'), ('z', 'float32'), ('s', 'float32'), ('r_mat', 'float32', (6,6))])
     m['element'] = response['element']
@@ -368,13 +385,16 @@ def full_machine_rmats(model_name, use_design=False):
     m['r_mat'] = np.reshape(np.array([response['r11'], response['r12'], response['r13'], response['r14'], response['r15'], response['r16'], response['r21'], response['r22'], response['r23'], response['r24'], response['r25'], response['r26'], response['r31'], response['r32'], response['r33'], response['r34'], response['r35'], response['r36'], response['r41'], response['r42'], response['r43'], response['r44'], response['r45'], response['r46'], response['r51'], response['r52'], response['r53'], response['r54'], response['r55'], response['r56'], response['r61'], response['r62'], response['r63'], response['r64'], response['r65'], response['r66']]).T, (-1,6,6))
     return m
 
-def full_machine_twiss(model_name, use_design=False):
-    """Gets twiss parameters for the full machine from the BMAD Live Model service.
+def full_machine_twiss(model_name, use_design=False, model_source='BMAD'):
+    """Gets twiss parameters for the full machine from the BMAD Live Model service. It uses, the  PV "{model_sourc.upper}:SYS0:1:{model_name.upper}:{LIVE or DESIGN}:RMAT".
+
     
     Args:
         model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
         use_design (bool, optional): Whether or not to use the design model, rather
         than the extant model.  Defaults to False.
+         model_source (str, optional): The name of the model source ('BMAD', or 'LUCRETIA', for example).
+
     Returns:
         numpy.ndarray: A numpy structured array containing the model data.  The array
         has the following fields for each element:
@@ -396,5 +416,5 @@ def full_machine_twiss(model_name, use_design=False):
     model_type = "LIVE"
     if use_design:
         model_type = "DESIGN"
-    path = "BMAD:SYS0:1:{}:{}:TWISS".format(model_name.upper(), model_type)
+    path = "{}:SYS0:1:{}:{}:TWISS".format(model_source.upper(),model_name.upper(), model_type)
     return NumpyNTTable.unwrap(Model.ctx.get(path))
