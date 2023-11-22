@@ -119,10 +119,11 @@ class Model(object):
             names = [names]
         for name in names:
             dev_index = np.asarray(self.twiss_data['device_name'] == name)
-            dev_index = np.logical_or(np.asarray(self.twiss_data['element'] == name))
-            dev_index = np.logical_or(np.asarray(self.twiss_data['element'] == f"{name}#1"))
-            dev_index = np.logical_or(np.asarray(self.twiss_data['element'] == f"{name}#2"))
-            dev_index = dev_index.nonzero()
+            dev_index = np.logical_or(dev_index, np.asarray(self.twiss_data['element'] == name))
+            dev_index = np.logical_or(dev_index, np.asarray(self.twiss_data['element'] == f"{name}#1"))
+            dev_index = np.logical_or(dev_index, np.asarray(self.twiss_data['element'] == f"{name}#2"))
+            dev_index = dev_index.nonzero()[0] #nonzero always returns a tuple, we always want the first element.
+            print("matching device indices:", dev_index)
             num_matching_devices = len(dev_index)
             if num_matching_devices == 0:
                 msg = f"Device with name {name} not found in the machine model."
@@ -218,18 +219,22 @@ class Model(object):
                     raise ValueError("from_device_pos must be 'beg' or 'mid'.")
                 a_index = self._get_indices_for_names(a, split_suffix, ignore_bad_names)[0]
                 
-                if to_device_pos == 'mid':
-                    split_suffix = "#1"
-                elif to_device_pos == 'end':
-                    split_suffix = "#2"
-                else:
-                    raise ValueError("to_device_pos must be 'mid' or 'end'.")
-                b_index = self._get_indices_for_names(b, split_suffix, ignore_bad_names)[0]
+            if to_device_pos == 'mid':
+                split_suffix = "#1"
+            elif to_device_pos == 'end':
+                split_suffix = "#2"
+            else:
+                raise ValueError("to_device_pos must be 'mid' or 'end'.")
+            b_index = self._get_indices_for_names(b, split_suffix, ignore_bad_names)[0]
+
+            print("a_index:", a_index)
+            print("b_index:", b_index)
 
             try:
                 if a_index is None:
                     raise IndexError()
                 a_mat = self.rmat_data[a_index]['r_mat']
+                print("a_mat:", a_mat)
             except IndexError:
                 msg = "Device with name {name} not found in the machine model.".format(name=a)
                 if ignore_bad_names:
@@ -243,6 +248,7 @@ class Model(object):
                 if b_index is None:
                     raise IndexError()
                 b_mat = self.rmat_data[b_index]['r_mat']
+                print("b_mat:", b_mat)
             except IndexError:
                 msg = "Device with name {name} not found in the machine model.".format(name=b)
                 if ignore_bad_names:
@@ -308,7 +314,7 @@ class Model(object):
         Returns:
             np.ndarray: A 1xN array of S positions, where N=len(device_list)
         """
-        self.get_twiss_attribute(device_list, 's', ignore_bad_names, pos)
+        return self.get_twiss_attribute(device_list, 's', ignore_bad_names, pos)
     
     def get_zpos(self, device_list, ignore_bad_names=False, pos='mid'):
         """Get Z position for one or more devices.
@@ -324,7 +330,7 @@ class Model(object):
         Returns:
             np.ndarray: A 1xN array of Z positions, where N=len(device_list)
         """
-        self.get_twiss_attribute(device_list, 'z', ignore_bad_names, pos)
+        return self.get_twiss_attribute(device_list, 'z', ignore_bad_names, pos)
 
     def get_twiss(self, device_list, ignore_bad_names=False, pos='mid'):
         """Get twiss data for one or more devices.
@@ -382,7 +388,6 @@ class Model(object):
             else:
                 raise ValueError("'pos' must be either 'mid' or 'end'.")
             dev_index = self._get_indices_for_names(dev, split_suffix, ignore_bad_names)[0]
-            num_matching_devices = len(dev_index)
             if dev_index is None:
                 msg = "Device with name {name} not found in the machine model, could not get twiss information.".format(name=dev)
                 if ignore_bad_names:
