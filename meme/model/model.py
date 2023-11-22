@@ -71,8 +71,10 @@ class Model(object):
     Be warned though, this adds a several hundred millisecond delay to every call.
   
     Args:
-      model_name (str): Which acclerator model to use.  Can be "CU_HXR", "CU_SXR","CU_SPEC", "SC_DIAG0", "SC_BSYD", "SC_HXR", "SC_SXR", or "FACET2E".
-      model_source (str, optional): Defaults to "BMAD", which is currently the only option for CU and SC model_names. FACET2E only has "LUCRETIA" as a source.
+      model_name (str): Which acclerator beam path to use.  Can be "CU_HXR", "CU_SXR","CU_SPEC", "SC_DIAG0", "SC_BSYD", "SC_HXR", "SC_SXR", or "FACET2E".
+      model_source (str, optional): Which modelling software to use.  The default is "BMAD", which
+        works for the CU_* and SC_* beam paths.  You can also pick "BLEM" for CU_* and SC_*.
+        FACET2E only has "LUCRETIA" as a source.
       initialize (bool, optional): Whether to fetch rmat and twiss data
         immediately upon initialization.  Defaults to True.  If initialize is 
         False, the data will be fetched the first time it is used.
@@ -96,8 +98,13 @@ class Model(object):
       <np.ndarray>
  
     """
-    def __init__(self, model_name, model_source='BMAD', initialize=True, use_design=False, no_caching=False):
+    def __init__(self, model_name, model_source=None, initialize=True, use_design=False, no_caching=False):
         self.model_name = str(model_name).upper()
+        if self.model_name == "FACET2E" and model_source is None:
+            # The only FACET2E model comes from LUCRETIA, so might as well fill that in as a default.
+            model_source = "LUCRETIA"
+        elif model_source is None:
+            model_source = "BMAD"
         self.model_source = str(model_source).upper()
         self.use_design = use_design
         self.no_caching = no_caching
