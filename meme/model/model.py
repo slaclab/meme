@@ -113,7 +113,38 @@ class Model(object):
         if initialize:
             self.refresh_all()
     
-    def get_rmat(self, from_device, to_device=[], ignore_bad_names=False):
+    def _get_indices_for_names(self, names, split_suffix, ignore_bad_names=False):
+        indices = []
+        if isinstance(names, str):
+            names = [names]
+        for name in names:
+            dev_index = np.asarray(self.twiss_data['device_name'] == name)
+            dev_index = np.logical_or(np.asarray(self.twiss_data['element'] == name))
+            dev_index = np.logical_or(np.asarray(self.twiss_data['element'] == f"{name}#1"))
+            dev_index = np.logical_or(np.asarray(self.twiss_data['element'] == f"{name}#2"))
+            dev_index = dev_index.nonzero()
+            num_matching_devices = len(dev_index)
+            if num_matching_devices == 0:
+                msg = f"Device with name {name} not found in the machine model."
+                if ignore_bad_names:
+                    print(msg)
+                    indices.append(None)
+                else:
+                    raise IndexError(msg)
+            elif num_matching_devices == 1:
+                indices.append(dev_index[0])
+            elif num_matching_devices == 2:
+                if self.twiss_data[dev_index[0]]['element'].endswith(split_suffix):
+                    indices.append(dev_index[0])
+                elif self.twiss_data[dev_index[1]]['element'].endswith(split_suffix):
+                    indices.append(dev_index[1])
+                else:
+                    raise IndexError(f"Could not find an element with name {name} and split suffix {split_suffix}")
+            else:
+                raise IndexError(f"Multiple devices matching {name} were found in the model, could not determine which one to use.")
+        return indices
+    
+    def get_rmat(self, from_device, to_device=[], ignore_bad_names=False, from_device_pos='beg', to_device_pos='end'):
         """Get 6x6 transfer matrices for one or more devices.
 
         This method operates in a few different modes:
@@ -130,19 +161,29 @@ class Model(object):
           matrices will be returned, one for each pair in the two lists.  Note that
           in this mode, both device lists must be the same length.
 
-          5. If only one device, or one list of devices is specified, it is assumed
-          that a single 'from' device, the first element in the machine, is implied.
+          5. If only one device, or one list of devices is specified, the first 
+          element in the machine will be used as the 'from' device.
 
 
         Args:
           from_device (str or list of str): The starting device(s) for calculating the
-            transfer matrices.
+            transfer matrices.  Use device names, element names, or a mix of both.
           to_device (str or list of str): The end device(s) for calculating the
-            transfer matrices.
+            transfer matrices.  Use device names, element names, or a mix of both.
           ignore_bad_names (bool, optional): Whether or not to ignore device
             names which aren't present in the model.  If this option is True, and a
             device is not found in the model, a 6x6 matrix filled with np.nan will be 
             inserted for that device.
+          from_device_pos (optional): Either 'beg' or 'mid', defaults to 'beg'.
+            For "split" elements (some quads and bends) only. 'beg' will calculate
+            the matrix starting from the first half-element, 'mid' will calculate
+            the matrix starting from the second half-element.  This option is ignored
+            for non-split elements.
+          to_device_pos (optional): Either 'mid' or 'end', defaults to 'end'.
+            For "split" elements (some quads and bends) only. 'mid' will calculate
+            the matrix up to the first half-element, 'end' will calculate
+            the matrix up to the second half-element.  This option is ignored
+            for non-split elements.
 
         Returns:
           np.ndarray: An array with shape Nx6x6, where N is the length of from_device
@@ -156,30 +197,39 @@ class Model(object):
             raise Exception("Length of from_device must match length of to_device if both have length > 1.")
         if len(to_device) == 0:
             to_device = list(from_device)
-            if self.model_name.startswith("CU"):
-                from_device = ['CATH:IN20:111']
-            elif self.model_name.startswith("SC"):
-                from_device = ['CATH:GUNB:100']
-            elif self.model_name.startswith('FACET'):
-                from_device=['KLYS:LI0:21'] #funny name, but this corresponds to CATHODE element
-            else:
-                raise NameError('len(to_device)==0 and model_name not found')
+            from_device = [None] # Later, we'll use the first element in the lattice if from_device is None.
 
         if self.rmat_data is None or self.no_caching:
             self.refresh_rmat_data()
+                
         device_list = list(zip(from_device, cycle(to_device))) if len(from_device) > len(to_device) else list(zip(cycle(from_device), to_device))
         rmats = np.zeros((len(device_list),6,6))
         i = 0
         for dev_pair in device_list:
             a, b = dev_pair
-            a_index = np.where(self.rmat_data['device_name'] == a)
-            #if len(a_index[0]) > 1:
-                #a_index = a_index & (self.rmat_data['position_index'] == from_pos)
-            b_index = np.where(self.rmat_data['device_name'] == b)
-            #if len(b_index[0]) > 1:
-                #b_index = b_index & (self.rmat_data['position_index'] == to_pos)
+            if a is None:
+                a_index = 0
+            else:
+                if from_device_pos == 'beg':
+                    split_suffix = "#1"
+                elif from_device_pos == 'mid':
+                    split_suffix = "#2"
+                else:
+                    raise ValueError("from_device_pos must be 'beg' or 'mid'.")
+                a_index = self._get_indices_for_names(a, split_suffix, ignore_bad_names)[0]
+                
+                if to_device_pos == 'mid':
+                    split_suffix = "#1"
+                elif to_device_pos == 'end':
+                    split_suffix = "#2"
+                else:
+                    raise ValueError("to_device_pos must be 'mid' or 'end'.")
+                b_index = self._get_indices_for_names(b, split_suffix, ignore_bad_names)[0]
+
             try:
-                a_mat = self.rmat_data[a_index][0]['r_mat']
+                if a_index is None:
+                    raise IndexError()
+                a_mat = self.rmat_data[a_index]['r_mat']
             except IndexError:
                 msg = "Device with name {name} not found in the machine model.".format(name=a)
                 if ignore_bad_names:
@@ -188,8 +238,11 @@ class Model(object):
                     a_mat.fill(np.nan)
                 else:
                     raise IndexError(msg)
+            
             try:
-                b_mat = self.rmat_data[b_index][0]['r_mat']
+                if b_index is None:
+                    raise IndexError()
+                b_mat = self.rmat_data[b_index]['r_mat']
             except IndexError:
                 msg = "Device with name {name} not found in the machine model.".format(name=b)
                 if ignore_bad_names:
@@ -203,87 +256,89 @@ class Model(object):
         if i == 1:
             return rmats[0]
         return rmats
+        
+    def get_twiss_attribute(self, device_list, attribute, ignore_bad_names=False, pos='mid'):
+        """Get the values for one attribute for one or more devices.
+        
+        Args:
+            device_list (str or list of str): The device(s) to get the attribute for.
+                You can use device names, element names, or a mix of both.
+            ignore_bad_names (bool, optional): Whether or not to ignore device
+                names which aren't present in the model.  If this option is True, and a
+                device is not found in the model, np.nan will be inserted for that device.
+            pos (str, optional): Either 'mid' or 'end'.  'mid' is the default.
+                Only applies to split elements.
+        """
+        if isinstance(device_list, str):
+            device_list = [device_list]
+        if self.twiss_data is None or self.no_caching:
+            self.refresh_twiss_data()
+        attr = np.full((len(device_list)), np.nan)
+        i = 0
+        for dev in device_list:
+            if pos == 'mid':
+                split_suffix = "#1"
+            elif pos == 'end':
+                split_suffix = "#2"
+            else:
+                raise ValueError("'pos' must be either 'mid' or 'end'.")
+            dev_index = self._get_indices_for_names(dev, split_suffix, ignore_bad_names)[0]
+            if dev_index is None:
+                continue
+            else:
+                attr[i] = self.twiss_data[dev_index][attribute]
+            i += 1
+            
+        if i == 1:
+            return attr[0]
+        return attr
     
-    def get_s(self, device_list, ignore_bad_names=False):
+    def get_s(self, device_list, ignore_bad_names=False, pos='mid'):
         """Get S position (integrated distance along the beamline) for one or more devices.
         
         Args:
             device_list (str or list of str): The device(s) to get S positions for.
+                You can use device names, element names, or a mix of both.
             ignore_bad_names (bool, optional): Whether or not to ignore device
-            names which aren't present in the model.  If this option is True, and a
-            device is not found in the model, np.nan will be inserted for that device.
+                names which aren't present in the model.  If this option is True, and a
+                device is not found in the model, np.nan will be inserted for that device.
+            pos (str, optional): Either 'mid' or 'end'.  'mid' is the default.
+                Only applies to split elements.
         
         Returns:
             np.ndarray: A 1xN array of S positions, where N=len(device_list)
         """
-        if isinstance(device_list, str):
-            device_list = [device_list]
-        if self.rmat_data is None or self.no_caching:
-            self.refresh_rmat_data()
-        s_pos = np.zeros((len(device_list)))
-        i = 0
-        for dev in device_list:
-            dev_index = np.where(self.rmat_data['device_name'] == dev)
-            #if len(dev_index[0]) > 1:
-                #dev_index = dev_index & (self.rmat_data['position_index'] == pos)
-            if len(dev_index[0]) == 1:
-                s_pos[i] = self.rmat_data[dev_index][0]['s']
-            else:
-                msg = "Device with name {name} not found in the machine model, could not get Z position.".format(name=dev)
-                if ignore_bad_names:
-                    print(msg)
-                    s_pos[i] = None
-                else:
-                    raise IndexError(msg)
-            i += 1
-        if i == 1:
-            return s_pos[0]
-        return s_pos
+        self.get_twiss_attribute(device_list, 's', ignore_bad_names, pos)
     
-    def get_zpos(self, device_list, ignore_bad_names=False):
+    def get_zpos(self, device_list, ignore_bad_names=False, pos='mid'):
         """Get Z position for one or more devices.
         
         Args:
             device_list (str or list of str): The device(s) to get Z positions for.
             ignore_bad_names (bool, optional): Whether or not to ignore device
-            names which aren't present in the model.  If this option is True, and a
-            device is not found in the model, np.nan will be inserted for that device.
+                names which aren't present in the model.  If this option is True, and a
+                device is not found in the model, np.nan will be inserted for that device.
+            pos (str, optional): Either 'mid' or 'end'.  'mid' is the default.
+                Only applies to split elements.
         
         Returns:
             np.ndarray: A 1xN array of Z positions, where N=len(device_list)
         """
-        if isinstance(device_list, str):
-            device_list = [device_list]
-        if self.rmat_data is None or self.no_caching:
-            self.refresh_rmat_data()
-        z_pos = np.zeros((len(device_list)))
-        i = 0
-        for dev in device_list:
-            dev_index = np.where(self.rmat_data['device_name'] == dev)
-            #if len(dev_index[0]) > 1:
-                #dev_index = dev_index & (self.rmat_data['position_index'] == pos)
-            if len(dev_index[0]) == 1:
-                z_pos[i] = self.rmat_data[dev_index][0]['z']
-            else:
-                msg = "Device with name {name} not found in the machine model, could not get Z position.".format(name=dev)
-                if ignore_bad_names:
-                    print(msg)
-                    z_pos[i] = None
-                else:
-                    raise IndexError(msg)
-            i += 1
-        if i == 1:
-            return z_pos[0]
-        return z_pos
+        self.get_twiss_attribute(device_list, 'z', ignore_bad_names, pos)
 
-    def get_twiss(self, device_list, ignore_bad_names=False):
+    def get_twiss(self, device_list, ignore_bad_names=False, pos='mid'):
         """Get twiss data for one or more devices.
         
         Args:
             device_list (str or list of str): The device(s) to get twiss parameters for.
+                You can use device names, element names, or a mix of both.
             ignore_bad_names (bool, optional): Whether or not to ignore device
                 names which aren't present in the model.  If this option is True, and a
                 device is not found in the model, np.nan will be inserted for that device.
+            pos (str): Either 'mid' or 'end'.  Defaults to 'mid'.  Only applies to split elements.
+                If 'mid', the twiss after the first half-element will be used.
+                If 'end', the twiss after the second half-element will be used.
+                Ignored completely for non-split elements.
         
         Returns:
             np.ndarray: A numpy structured array containing the twiss parameters for the
@@ -320,30 +375,36 @@ class Model(object):
         twiss = np.zeros(len(device_list), dtype=[('length', 'float32'), ('p0c', 'float32'), ('alpha_x', 'float32'), ('beta_x', 'float32'), ('eta_x', 'float32'), ('etap_x', 'float32'), ('psi_x', 'float32'), ('alpha_y', 'float32'), ('beta_y', 'float32'), ('eta_y', 'float32'), ('etap_y', 'float32'), ('psi_y', 'float32')])
         i = 0
         for dev in device_list:
-            dev_index = np.where(self.twiss_data['device_name'] == dev)
-            #if len(dev_index[0]) > 1:
-                #dev_index = dev_index & (self.twiss_data['position_index'] == pos)
-            if len(dev_index[0]) == 1:
-                twiss[i]['length'] = self.twiss_data[dev_index][0]['length']
-                twiss[i]['p0c'] = self.twiss_data[dev_index][0]['p0c']
-                twiss[i]['psi_x'] = self.twiss_data[dev_index][0]['psi_x']
-                twiss[i]['beta_x'] = self.twiss_data[dev_index][0]['beta_x']
-                twiss[i]['alpha_x'] = self.twiss_data[dev_index][0]['alpha_x']
-                twiss[i]['eta_x'] = self.twiss_data[dev_index][0]['eta_x']
-                twiss[i]['etap_x'] = self.twiss_data[dev_index][0]['etap_x']
-                twiss[i]['psi_y'] = self.twiss_data[dev_index][0]['psi_y']
-                twiss[i]['beta_y'] = self.twiss_data[dev_index][0]['beta_y']
-                twiss[i]['alpha_y'] = self.twiss_data[dev_index][0]['alpha_y']
-                twiss[i]['eta_y'] = self.twiss_data[dev_index][0]['eta_y']
-                twiss[i]['etap_y'] = self.twiss_data[dev_index][0]['etap_y']
+            if pos == 'mid':
+                split_suffix = "#1"
+            elif pos == 'end':
+                split_suffix = "#2"
             else:
+                raise ValueError("'pos' must be either 'mid' or 'end'.")
+            dev_index = self._get_indices_for_names(dev, split_suffix, ignore_bad_names)[0]
+            num_matching_devices = len(dev_index)
+            if dev_index is None:
                 msg = "Device with name {name} not found in the machine model, could not get twiss information.".format(name=dev)
                 if ignore_bad_names:
                     print(msg)
                     twiss[i][:] = None
                 else:
                     raise IndexError(msg)
+                    
+            twiss[i]['length'] = self.twiss_data[dev_index]['length']
+            twiss[i]['p0c'] = self.twiss_data[dev_index]['p0c']
+            twiss[i]['psi_x'] = self.twiss_data[dev_index]['psi_x']
+            twiss[i]['beta_x'] = self.twiss_data[dev_index]['beta_x']
+            twiss[i]['alpha_x'] = self.twiss_data[dev_index]['alpha_x']
+            twiss[i]['eta_x'] = self.twiss_data[dev_index]['eta_x']
+            twiss[i]['etap_x'] = self.twiss_data[dev_index]['etap_x']
+            twiss[i]['psi_y'] = self.twiss_data[dev_index]['psi_y']
+            twiss[i]['beta_y'] = self.twiss_data[dev_index]['beta_y']
+            twiss[i]['alpha_y'] = self.twiss_data[dev_index]['alpha_y']
+            twiss[i]['eta_y'] = self.twiss_data[dev_index]['eta_y']
+            twiss[i]['etap_y'] = self.twiss_data[dev_index]['etap_y']
             i += 1
+            
         if i == 1:
             return twiss[0]
         return twiss
