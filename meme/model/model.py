@@ -59,7 +59,6 @@ class NumpyNTTable(NTTable):
 # We use a custom subclass of NTTable that wraps/unwraps to a numpy structured array.
 
 class Model(object):
-    ctx = Context('pva')
     """Holds the data for the full machine model, with convenient features for retrieving info.
     
     The Model class represents model data for the full machine.  This class fetches the full
@@ -85,19 +84,25 @@ class Model(object):
         model, but makes method calls in this class slower.
     
     Examples:
-      $ ssh physics@lcls-srv01
-      >>> from meme.model import Model
-      >>> m = Model("CU_HXR")
-      >>> m.get_rmat('BPMS:LI24:801')
-      <np.ndarray>
+    
+    .. code-block:: python
+    
+      # On physics@lcls-srv01
+      from meme.model import Model
+      m = Model("CU_HXR")
+      m.get_rmat('BPMS:LI24:801')
 
-      $ssh fphysics@facet-srv01
-      >>> from meme.model import Model
-      >>> m = Model("FACET2E",model_source='LUCRETIA')
-      >>> m.get_rmat('LI16:XCOR:402')
-      <np.ndarray>
+
+    .. code-block:: python
+    
+      # On fphysics@facet-srv01
+      from meme.model import Model
+      m = Model("FACET2E",model_source='LUCRETIA')
+      m.get_rmat('LI16:XCOR:402')
  
     """
+    ctx = Context('pva')
+    
     def __init__(self, model_name, model_source=None, initialize=True, use_design=False, no_caching=False):
         self.model_name = str(model_name).upper()
         if self.model_name == "FACET2E" and model_source is None:
@@ -150,19 +155,50 @@ class Model(object):
         This method operates in a few different modes:
           1. When a single 'from' device and a single 'to' device is specified, a
           single 6x6 transfer matrix will be returned.
+          
+          .. code-block:: python
+          
+            m = Model("CU_HXR")
+            m.get_rmat('BPMS:LI24:801', 'BPMS:LI27:201')
+            # Will return a single 6x6 matrix
 
           2. When a single 'from' device and a list of 'to' devices is specified, a
           list of matrices will be returned, one for each element in the 'to' list.
+          
+          .. code-block:: python
+          
+            m.get_rmat('BPMS:LI24:801', ['BPMS:LI27:201', 'BPMS:LI27:301', 'BPMS:LI27:401'])
+            # Will return a list of three 6x6 matrices
 
           3. When a list of 'from' devices, and a single 'to' device is specified, a
           list of matrices will be returned, one for each element in the 'from' list.
+          
+          .. code-block:: python
+          
+            m.get_rmat(['BPMS:LI24:201', 'BPMS:LI24:301', 'BPMS:LI24:401'], 'BPMS:LI27:801')
+            # Will return a list of three 6x6 matrices
 
           4. When a list is specified for both 'from' and 'to' devices, a list of
           matrices will be returned, one for each pair in the two lists.  Note that
           in this mode, both device lists must be the same length.
+          
+          .. code-block:: python
+          
+            m.get_rmat(['BPMS:LI24:201', 'BPMS:LI24:301', 'BPMS:LI24:401'], ['BPMS:LI27:201', 'BPMS:LI27:301', 'BPMS:LI27:401'])
+            # Will return a list of three 6x6 matrices
 
           5. If only one device, or one list of devices is specified, the first 
           element in the machine will be used as the 'from' device.
+          
+          .. code-block:: python
+          
+            m.get_rmat(['BPMS:LI24:201', 'BPMS:LI24:301', 'BPMS:LI24:401'])
+            # Will return a list of three 6x6 matrices from the cathode to these three BPMs.
+          
+          .. code-block:: python
+          
+            m.get_rmat('BPMS:LI24:201')
+            # Will return a single 6x6 matrix from the cathode to this BPM.
 
 
         Args:
@@ -422,22 +458,23 @@ class Model(object):
         self.refresh_twiss_data()
 
 def full_machine_rmats(model_name, use_design=False, model_source='BMAD'):
-    """Gets the full machine model from the BMAD Live Model service. It uses, the  PV "{model_sourc.upper}:SYS0:1:{model_name.upper}:{LIVE or DESIGN}:RMAT".
+    """Gets the full machine model from the BMAD Live Model service. It uses the PV "{model_source.upper}:SYS0:1:{model_name.upper}:{LIVE or DESIGN}:RMAT"  Most of the time, it is more convenient to use the :class:`~meme.model.Model` class, rather than this method.
     
     Args:
-        model_name (str): Which acclerator model to use.  Must be "CU_HXR" or "CU_SXR".
+        model_name (str): Which accelerator model to use. "CU_HXR", "CU_SXR", "SC_HXR", etc.
         use_design (bool, optional): Whether or not to use the design model, rather
         than the extant model.  Defaults to False.
         model_source (str, optional): The name of the model source ('BMAD', or 'LUCRETIA', for example).
     Returns:
         numpy.ndarray: A numpy structured array containing the model data.  The array
         has the following fields:
-            * `element` (str): The element name for the element.
-            * `device_name` (str): The device name for the element.
-            * `s` (float): The s position for the element.  Note that s
-              position of 0 refers to the start of the entire SLAC linac, NOT the start
-              of LCLS.
-            * `r_mat` (6x6 np.ndarray of floats): The 6x6 transport matrix for this element.
+        
+        * `element` (str): The element name for the element.
+        * `device_name` (str): The device name for the element.
+        * `s` (float): The s position for the element.  Note that s-position 
+          of 0 refers to the start of the entire SLAC linac, NOT the start of LCLS.
+        * `r_mat` (6x6 np.ndarray of floats): The 6x6 transport matrix for this element.
+    
     """
     model_type = "LIVE"
     if use_design:
@@ -453,7 +490,7 @@ def full_machine_rmats(model_name, use_design=False, model_source='BMAD'):
     return m
 
 def full_machine_twiss(model_name, use_design=False, model_source='BMAD'):
-    """Gets twiss parameters for the full machine from the BMAD Live Model service. It uses, the  PV "{model_sourc.upper}:SYS0:1:{model_name.upper}:{LIVE or DESIGN}:RMAT".
+    """Gets twiss parameters for the full machine from the BMAD Live Model service. It uses the PV "{model_source.upper}:SYS0:1:{model_name.upper}:{LIVE or DESIGN}:RMAT". Most of the time, it is more convenient to use the :class:`~meme.model.Model` class, rather than this method.
 
     
     Args:
@@ -465,20 +502,22 @@ def full_machine_twiss(model_name, use_design=False, model_source='BMAD'):
     Returns:
         numpy.ndarray: A numpy structured array containing the model data.  The array
         has the following fields for each element:
-            * `element` (str): The element name for the element.
-            * `device_name` (str): The device name for the element.
-            * `length` (float): The effective length of the element.
-            * `p0c` (float): The total energy of the beam at the element.
-            * `alpha_x` (float): The horizontal alpha function value at the element.
-            * `beta_x` (float): The horizontal beta function value at the element.
-            * `eta_x` (float): The horizontal dispersion at the element.
-            * `etap_x` (float): The horizontal second-order dispersion at the element.
-            * `psi_x` (float): The horizontal betatron phase advance at the element.
-            * `alpha_y` (float): The vertical alpha function value at the element.
-            * `beta_y` (float): The vertical beta function value at the element.
-            * `eta_y` (float): The vertical dispersion at the element.
-            * `etap_y` (float): The vertical second-order dispersion at the element.
-            * `psi_y` (float): The vertical betatron phase advance at the element.
+        
+        * `element` (str): The element name for the element.
+        * `device_name` (str): The device name for the element.
+        * `length` (float): The effective length of the element.
+        * `p0c` (float): The total energy of the beam at the element.
+        * `alpha_x` (float): The horizontal alpha function value at the element.
+        * `beta_x` (float): The horizontal beta function value at the element.
+        * `eta_x` (float): The horizontal dispersion at the element.
+        * `etap_x` (float): The horizontal second-order dispersion at the element.
+        * `psi_x` (float): The horizontal betatron phase advance at the element.
+        * `alpha_y` (float): The vertical alpha function value at the element.
+        * `beta_y` (float): The vertical beta function value at the element.
+        * `eta_y` (float): The vertical dispersion at the element.
+        * `etap_y` (float): The vertical second-order dispersion at the element.
+        * `psi_y` (float): The vertical betatron phase advance at the element.
+        
     """
     model_type = "LIVE"
     if use_design:
