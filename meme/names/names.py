@@ -41,8 +41,6 @@ def _list(pattern, tag=None, sort_by=None, element_type=None, show=None, timeout
 def list_pvs(pattern, tag=None, sort_by=None, element_type=None, timeout=None):
   """Gets a list of PVs from the directory service.
   
-  Equivalent to calling :meth:`list` without specifying the show parameter.
-  
   Args:
     pattern (str): A pattern to search for.  The pattern can use an Oracle-style
       wildcard syntax, like this: "BPMS:BSY:%:X", where % is the wildcard symbol,
@@ -82,8 +80,6 @@ def list_devices(pattern, tag=None, sort_by=None, element_type=None, timeout=Non
 
 def list_elements(pattern, tag=None, sort_by=None, element_type=None, timeout=None):
   """Gets a list of PVs from the directory service.
-  
-  Equivalent to calling :meth:`list` with show="ename".
   
   Args:
     pattern (str): A pattern to search for.  The pattern can use an Oracle-style
