@@ -144,7 +144,14 @@ class Model(object):
                 elif self.twiss_data[dev_index[1]]['element'].endswith(split_suffix):
                     indices.append(dev_index[1])
                 else:
-                    raise IndexError(f"Could not find an element with name {name} and split suffix {split_suffix}")
+                    #Handle the default case where objects are split in 2 automatically, even if naming convention doesn't use #1 and #2
+                    spos=[self.twiss_data[ix]['s'] for ix in dev_index]
+                    if split_suffix=='#1':
+                        indices.append(dev_index[np.argmin(spos)])
+                    elif split_suffix=='#2': 
+                        indices.append(dev_index[np.argmax(spos)])
+                    else:
+                        raise IndexError(f"Could not find eviced {name} with suffix {split_suffix}.")
             else:
                 raise IndexError(f"Multiple devices matching {name} were found in the model, could not determine which one to use.")
         return indices
@@ -379,7 +386,11 @@ class Model(object):
         Returns:
             np.ndarray: A numpy structured array containing the twiss parameters for the
                 requested devices.  The array has the following fields:
-                
+
+                * 's' (float) : the s (path length) position along the beamline of the device
+
+                * 'z' (float) : the z (geometric) position along the beamline of the device
+
                 * `length` (float): The effective length of the device.
                 
                 * `p0c` (float): The total energy of the beam at the device.
@@ -408,7 +419,7 @@ class Model(object):
             device_list = [device_list]
         if self.rmat_data is None or self.no_caching:
             self.refresh_twiss_data()
-        twiss = np.zeros(len(device_list), dtype=[('length', 'float32'), ('p0c', 'float32'), ('alpha_x', 'float32'), ('beta_x', 'float32'), ('eta_x', 'float32'), ('etap_x', 'float32'), ('psi_x', 'float32'), ('alpha_y', 'float32'), ('beta_y', 'float32'), ('eta_y', 'float32'), ('etap_y', 'float32'), ('psi_y', 'float32')])
+        twiss = np.zeros(len(device_list), dtype=[('s', 'float32'), ('z', 'float32'),('length', 'float32'), ('p0c', 'float32'), ('alpha_x', 'float32'), ('beta_x', 'float32'), ('eta_x', 'float32'), ('etap_x', 'float32'), ('psi_x', 'float32'), ('alpha_y', 'float32'), ('beta_y', 'float32'), ('eta_y', 'float32'), ('etap_y', 'float32'), ('psi_y', 'float32')])
         i = 0
         for dev in device_list:
             if pos == 'mid':
@@ -425,7 +436,9 @@ class Model(object):
                     twiss[i][:] = None
                 else:
                     raise IndexError(msg)
-                    
+            
+            twiss[i]['s'] = self.twiss_data[dev_index]['s']
+            twiss[i]['z'] = self.twiss_data[dev_index]['z']
             twiss[i]['length'] = self.twiss_data[dev_index]['length']
             twiss[i]['p0c'] = self.twiss_data[dev_index]['p0c']
             twiss[i]['psi_x'] = self.twiss_data[dev_index]['psi_x']
@@ -505,6 +518,8 @@ def full_machine_twiss(model_name, use_design=False, model_source='BMAD'):
         
         * `element` (str): The element name for the element.
         * `device_name` (str): The device name for the element.
+        *  's' (float): The s (path length) position of the device.
+        *  'z' (float): the z (geometric) position of the device.
         * `length` (float): The effective length of the element.
         * `p0c` (float): The total energy of the beam at the element.
         * `alpha_x` (float): The horizontal alpha function value at the element.
