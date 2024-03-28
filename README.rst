@@ -36,10 +36,10 @@ Model
 -----
 Interacting with the model takes an object oriented approach.  To get model
 data, first make an instance of the `Model` class, then call its methods to
-get the data you are interested in:
+get the data you are interested in. Model must be given a path.The path can be "CU_HXR", "CU_SXR","CU_SPEC", "SC_DIAG0", "SC_BSYD", "SC_HXR", "SC_SXR", or "FACET2E". It can also be givena model_source (for FACET this must be LUCRETIA. The default is BMAD).
 
 >>> from meme.model import Model
->>> m = Model()
+>>> m = Model('CU_HXR','BMAD')
 >>> m.get_rmat('BPMS:LI24:801')
 <6x6 np.ndarray>
 
@@ -51,7 +51,7 @@ you'd like to refresh the data for an existing instance, you can do that by
 calling `Model.refresh_all()`:
 
 >>> from meme.model import Model
->>> m = Model()
+>>> m = Model('CU_HXR')
 >>> twiss = m.get_twiss('QUAD:LTU1:440')
 >>> m.refresh_all() #The beam energy has changed and you want a new model.
 >>> new_twiss = m.get_twiss('QUAD:LTU1:440')
